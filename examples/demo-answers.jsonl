@@ -1,0 +1,13 @@
+{"id": "Q01", "answer": {"assignments": [[true, true, true, false]], "count": 1}}
+{"id": "Q02", "answer": {"posterior": "1/2", "healthy_double_positive": "2509/25000"}}
+{"id": "Q03", "answer": {"lower": "-1/1", "upper": "2/1"}}
+{"id": "Q16", "answer": {"admission": ["A", "B", "D", "C"], "propagated_failure": "A"}}
+{"id": "Q18", "answer": {"edges": [["A", "C"], ["B", "A"], ["C", "B"]], "serializable": false}}
+{"id": "Q22", "answer": {"to_4": 7, "to_4_after_edge": "-inf"}}
+{"id": "Q26", "answer": {"outcomes": [-4, 512, 3, "ERROR", "ERROR", "ERROR", "ERROR"], "power_associativity": "right"}}
+{"id": "Q36", "answer": {"residue": 343, "exponent_mod_400": 343}}
+{"id": "Q39", "answer": {"solution": [649, 180], "period": [1, 1, 1, 1, 6]}}
+{"id": "Q40", "answer": {"rank_probabilities": ["615195/2097152", "38757285/67108864"], "expected_nonzero_kernel": "63/64"}}
+{"id": "Q46", "answer": {"labeled": 4290, "necklaces": 217}}
+{"id": "Q48", "answer": {"coefficients": [1, 0, -40, 0, 352, 0, -960, 0, 576], "degree": 4}}
+{"id": "Q50", "answer": {"sharp_constant": "2/1", "equality_set": "A"}}

@@ -1,0 +1,26 @@
+Answer ONE supplied question at a time in a fresh context. No tools are required.
+Output exactly one JSON object on one line: {"id":"Qnn","answer":{...}}.
+Use the exact two answer field names specified by the question. No prose or Markdown.
+Optional top-level "rationale" may contain a string; it is preserved but NEVER scored.
+Use JSON booleans true/false, not strings. Numeric answers must be JSON integers;
+no decimal or exponential notation is accepted. Rationals are REDUCED strings "n/d"
+with positive denominator, including "0/1" and integral values like "6/1".
+Arrays must follow the order specified by each question. Object key order is ignored.
+Each field earns exactly 1 point if its complete typed value matches the oracle,
+otherwise 0. Each question has 2 fields: 50 questions, 100 points total.
+Missing questions score 0 but are marked missing, not wrong. Partial runs are allowed.
+Unknown/duplicate question IDs, duplicate JSON keys, invalid JSON, extra answer fields,
+or missing answer fields invalidate the submission; they do not produce a numeric score.
+Answer fields have no synonyms or implicit coercions. You may reason privately;
+only the requested outputs are assessed. Keep the answer key out of model context.
+This revised test checks finite outputs and certificates, not arbitrary proof quality
+or the correctness of unrestricted implementations. Scores are NOT comparable to v1.
+
+## Q34. Micro contract parser
+
+Exact ASCII grammar: v1|mul|NAME:TYPE,NAME:TYPE->NAME:TYPE. NAME=[a-z][a-z0-9_]{0,7}; TYPE=i64 or f64; all3 names distinct; all3 types identical; full string consumed; no whitespace. Inputs A=v1|mul|x:i64,y:i64->z:i64; B=v1|mul|x:i64,x:i64->z:i64; C=v1|mul|x:f64,y:i64->z:f64; D=A followed by newline; E=v1|mul|a:f64,b:f64->c:f64. Runtime i64 product2^62*4.
+
+Answer fields:
+- `accepted`: Sorted letters.
+- `runtime_product`: String OVERFLOW or integer result under checked i64.
+

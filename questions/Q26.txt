@@ -1,0 +1,26 @@
+Answer ONE supplied question at a time in a fresh context. No tools are required.
+Output exactly one JSON object on one line: {"id":"Qnn","answer":{...}}.
+Use the exact two answer field names specified by the question. No prose or Markdown.
+Optional top-level "rationale" may contain a string; it is preserved but NEVER scored.
+Use JSON booleans true/false, not strings. Numeric answers must be JSON integers;
+no decimal or exponential notation is accepted. Rationals are REDUCED strings "n/d"
+with positive denominator, including "0/1" and integral values like "6/1".
+Arrays must follow the order specified by each question. Object key order is ignored.
+Each field earns exactly 1 point if its complete typed value matches the oracle,
+otherwise 0. Each question has 2 fields: 50 questions, 100 points total.
+Missing questions score 0 but are marked missing, not wrong. Partial runs are allowed.
+Unknown/duplicate question IDs, duplicate JSON keys, invalid JSON, extra answer fields,
+or missing answer fields invalidate the submission; they do not produce a numeric score.
+Answer fields have no synonyms or implicit coercions. You may reason privately;
+only the requested outputs are assessed. Keep the answer key out of model context.
+This revised test checks finite outputs and certificates, not arbitrary proof quality
+or the correctness of unrestricted implementations. Scores are NOT comparable to v1.
+
+## Q26. Expression evaluator
+
+Python arithmetic precedence; whitelist finite float literals, +,-,*,/,**, unary+/- and sqrt/sin/log bare one-argument calls. Every literal<=1e6 abs, every result<=1e12 abs, exponent abs<=10. Reject bools, names, attributes, domains, nonfinite results. Evaluate independently: -2**2; 2**3**2; sqrt(9)+sin(0); 1/0; True; (-1)**0.5; 2**11.
+
+Answer fields:
+- `outcomes`: Array of number results or string ERROR.
+- `power_associativity`: String left or right.
+

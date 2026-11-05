@@ -1,0 +1,27 @@
+name: Model test
+description: Paste model answers and automatically receive an exact-score report.
+title: "[Model test] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use the revised v2 questions. Paste one JSON object per line, one per question.
+        A single question or a partial run is fine. No API keys or model connection needed.
+        Submission data and reports have the same visibility as this repository.
+  - type: input
+    id: model
+    attributes:
+      label: Model
+      description: Model, quantization and settings, up to 120 characters.
+      placeholder: Kimi K2.5 Q2 — thinking — closed book
+    validations:
+      required: true
+  - type: textarea
+    id: answers
+    attributes:
+      label: Answers
+      description: Paste JSONL only. Do not add an outer code fence; the form supplies it.
+      render: text
+      placeholder: '{"id":"Qnn","answer":{"field_one":"value","field_two":"value"}}'
+    validations:
+      required: true

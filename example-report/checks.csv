@@ -1,0 +1,101 @@
+question,category,points,maximum,status,field,passed,expected,received
+Q01,Reasoning,2,2,pass,assignments,True,"[[true, true, true, false]]","[[true, true, true, false]]"
+Q01,Reasoning,2,2,pass,count,True,1,1
+Q02,Reasoning,1,2,partial,posterior,False,"""91225/1084789""","""1/2"""
+Q02,Reasoning,1,2,partial,healthy_double_positive,True,"""2509/25000""","""2509/25000"""
+Q03,Reasoning,0,2,fail,lower,False,"""0/1""","""-1/1"""
+Q03,Reasoning,0,2,fail,upper,False,"""1/1""","""2/1"""
+Q04,Reasoning,0,2,missing,core,False,"[1, 2, 3, 4]",
+Q04,Reasoning,0,2,missing,removal_witnesses,False,"[[0, 0, 2], [0, 1, 1], [0, 2, 0], [0, 1, 2]]",
+Q05,Reasoning,0,2,missing,feasible,False,"[6, 7, 8]",
+Q05,Reasoning,0,2,missing,minimax,False,"[7, 1]",
+Q06,Reasoning,0,2,missing,possible_now,False,false,
+Q06,Reasoning,0,2,missing,sufficient_capability,False,"""B""",
+Q07,Reasoning,0,2,missing,original,False,false,
+Q07,Reasoning,0,2,missing,modified_order,False,"[""W2"", ""R2"", ""W1"", ""R1""]",
+Q08,Reasoning,0,2,missing,order,False,"[""B"", ""A"", ""E"", ""D"", ""G"", ""C"", ""F"", ""H""]",
+Q08,Reasoning,0,2,missing,objective,False,140,
+Q09,Reasoning,0,2,missing,equivalent,False,false,
+Q09,Reasoning,0,2,missing,minimum_counterexample,False,"[2, 2]",
+Q10,Reasoning,0,2,missing,optimal,False,"[5, 5]",
+Q10,Reasoning,0,2,missing,intersection_alone_linearizable,False,false,
+Q11,Reasoning,0,2,missing,lower,False,"""0/1""",
+Q11,Reasoning,0,2,missing,upper,False,"""1/4""",
+Q12,Reasoning,0,2,missing,finite_suite_proves_original,False,false,
+Q12,Reasoning,0,2,missing,restricted_domain_size,False,65793,
+Q13,Reasoning,0,2,missing,all_terminate,False,true,
+Q13,Reasoning,0,2,missing,normal_forms_ab,False,"[""a"", ""aa""]",
+Q14,Reasoning,0,2,missing,safe_sequence,False,"[""P3"", ""P1"", ""P2""]",
+Q14,Reasoning,0,2,missing,grant_p1_one_r,False,false,
+Q15,Reasoning,0,2,missing,codeword_deficit,False,1,
+Q15,Reasoning,0,2,missing,minimum_prefix_mean_bits,False,"""256/1""",
+Q16,Code and systems,2,2,pass,admission,True,"[""A"", ""B"", ""D"", ""C""]","[""A"", ""B"", ""D"", ""C""]"
+Q16,Code and systems,2,2,pass,propagated_failure,True,"""A""","""A"""
+Q17,Code and systems,0,2,missing,safe_designs,False,"[""C""]",
+Q17,Code and systems,0,2,missing,hardlink_truncation_safe,False,false,
+Q18,Code and systems,2,2,pass,edges,True,"[[""A"", ""C""], [""B"", ""A""], [""C"", ""B""]]","[[""A"", ""C""], [""B"", ""A""], [""C"", ""B""]]"
+Q18,Code and systems,2,2,pass,serializable,True,false,false
+Q19,Code and systems,0,2,missing,action,False,"""B""",
+Q19,Code and systems,0,2,missing,cross_store_atomic_visibility,False,false,
+Q20,Code and systems,0,2,missing,shared_task_cancelled,False,false,
+Q20,Code and systems,0,2,missing,stale_callback_deletes_new,False,false,
+Q21,Code and systems,0,2,missing,accepted,False,"[true, false, true, false]",
+Q21,Code and systems,0,2,missing,unicode_record_bytes,False,4,
+Q22,Code and systems,2,2,pass,to_4,True,7,7
+Q22,Code and systems,2,2,pass,to_4_after_edge,True,"""-inf""","""-inf"""
+Q23,Code and systems,0,2,missing,stdout,False,"[""1"", ""inner-finally"", ""caught"", ""9"", ""outer-finally""]",
+Q23,Code and systems,0,2,missing,inner_second_yield_reached,False,false,
+Q24,Code and systems,0,2,missing,visible,False,"[[""b"", ""right""]]",
+Q24,Code and systems,0,2,missing,filter_deleted_first_resurrects,False,"[""a""]",
+Q25,Code and systems,0,2,missing,both_can_commit_off,False,true,
+Q25,Code and systems,0,2,missing,sufficient_remedies,False,"[""A"", ""C""]",
+Q26,Code and systems,2,2,pass,outcomes,True,"[-4, 512, 3, ""ERROR"", ""ERROR"", ""ERROR"", ""ERROR""]","[-4, 512, 3, ""ERROR"", ""ERROR"", ""ERROR"", ""ERROR""]"
+Q26,Code and systems,2,2,pass,power_associativity,True,"""right""","""right"""
+Q27,Code and systems,0,2,missing,signals,False,"[[1000, ""TERM"", ""process_group""], [1200, ""KILL"", ""process_group""]]",
+Q27,Code and systems,0,2,missing,return_at_parent_exit,False,false,
+Q28,Code and systems,0,2,missing,results,False,"[""x"", ""Closed"", ""Closed""]",
+Q28,Code and systems,0,2,missing,blocked_producer_wakes,False,true,
+Q29,Code and systems,0,2,missing,accepted,False,"[""A"", ""D""]",
+Q29,Code and systems,0,2,missing,array_every_detects_holes,False,false,
+Q30,Code and systems,0,2,missing,classifications,False,"[""UB"", ""defined"", ""UB"", ""UB""]",
+Q30,Code and systems,0,2,missing,symmetric_d_result,False,"""INT_MAX""",
+Q31,Code and systems,0,2,missing,unrebuilt_physical_bound,False,"""Theta(n)""",
+Q31,Code and systems,0,2,missing,repair,False,"""B""",
+Q32,Code and systems,0,2,missing,result,False,3192,
+Q32,Code and systems,0,2,missing,mod_one,False,0,
+Q33,Code and systems,0,2,missing,is_one_minimal,False,true,
+Q33,Code and systems,0,2,missing,global_minimum,False,"[""c""]",
+Q34,Code and systems,0,2,missing,accepted,False,"[""A"", ""E""]",
+Q34,Code and systems,0,2,missing,runtime_product,False,"""OVERFLOW""",
+Q35,Code and systems,0,2,missing,root_scale_exponents,False,"[-16, 16]",
+Q35,Code and systems,0,2,missing,zero_case_roots,False,"[0, 0]",
+Q36,Mathematics,2,2,pass,residue,True,343,343
+Q36,Mathematics,2,2,pass,exponent_mod_400,True,343,343
+Q37,Mathematics,0,2,missing,coefficient,False,"""1/6""",
+Q37,Mathematics,0,2,missing,series_coefficients,False,"[""2/1"", ""-1/6""]",
+Q38,Mathematics,0,2,missing,coefficients,False,"[""1/1"", ""0/1"", ""-1/1"", ""0/1"", ""1/8""]",
+Q38,Mathematics,0,2,missing,sup_norm,False,"""1/8""",
+Q39,Mathematics,2,2,pass,solution,True,"[649, 180]","[649, 180]"
+Q39,Mathematics,2,2,pass,period,True,"[1, 1, 1, 1, 6]","[1, 1, 1, 1, 6]"
+Q40,Mathematics,2,2,pass,rank_probabilities,True,"[""615195/2097152"", ""38757285/67108864""]","[""615195/2097152"", ""38757285/67108864""]"
+Q40,Mathematics,2,2,pass,expected_nonzero_kernel,True,"""63/64""","""63/64"""
+Q41,Mathematics,0,2,missing,hth_wins,False,"""1/3""",
+Q41,Mathematics,0,2,missing,expected_tosses,False,"""6/1""",
+Q42,Mathematics,0,2,missing,coefficients,False,"[1, 2, 2, 2, 2]",
+Q42,Mathematics,0,2,missing,at_zero,False,"""1/1""",
+Q43,Mathematics,0,2,missing,limits,False,"[""0/1"", ""1/1"", ""0/1""]",
+Q43,Mathematics,0,2,missing,integrable_dominator_exists,False,false,
+Q44,Mathematics,0,2,missing,power_10,False,"[[1, 10, 45, 120], [0, 1, 10, 45], [0, 0, 1, 10], [0, 0, 0, 1]]",
+Q44,Mathematics,0,2,missing,norm_limit,False,"""1/6""",
+Q45,Mathematics,0,2,missing,extrema_coefficients,False,"[[""6/1"", ""-2/9""], [""6/1"", ""2/9""]]",
+Q45,Mathematics,0,2,missing,ordered_equality_counts,False,"[3, 3]",
+Q46,Mathematics,2,2,pass,labeled,True,4290,4290
+Q46,Mathematics,2,2,pass,necklaces,True,217,217
+Q47,Mathematics,0,2,missing,roots,False,"[1, 2047, 2049, 4095]",
+Q47,Mathematics,0,2,missing,count,False,4,
+Q48,Mathematics,1,2,partial,coefficients,True,"[1, 0, -40, 0, 352, 0, -960, 0, 576]","[1, 0, -40, 0, 352, 0, -960, 0, 576]"
+Q48,Mathematics,1,2,partial,degree,False,8,4
+Q49,Mathematics,0,2,missing,expected_abs_determinant,False,"""13/54""",
+Q49,Mathematics,0,2,missing,integrals,False,"[""3/4"", ""17/27""]",
+Q50,Mathematics,2,2,pass,sharp_constant,True,"""2/1""","""2/1"""
+Q50,Mathematics,2,2,pass,equality_set,True,"""A""","""A"""

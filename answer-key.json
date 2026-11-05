@@ -1,0 +1,438 @@
+{
+  "Q01": {
+    "assignments": [
+      [
+        true,
+        true,
+        true,
+        false
+      ]
+    ],
+    "count": 1
+  },
+  "Q02": {
+    "posterior": "91225/1084789",
+    "healthy_double_positive": "2509/25000"
+  },
+  "Q03": {
+    "lower": "0/1",
+    "upper": "1/1"
+  },
+  "Q04": {
+    "core": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "removal_witnesses": [
+      [
+        0,
+        0,
+        2
+      ],
+      [
+        0,
+        1,
+        1
+      ],
+      [
+        0,
+        2,
+        0
+      ],
+      [
+        0,
+        1,
+        2
+      ]
+    ]
+  },
+  "Q05": {
+    "feasible": [
+      6,
+      7,
+      8
+    ],
+    "minimax": [
+      7,
+      1
+    ]
+  },
+  "Q06": {
+    "possible_now": false,
+    "sufficient_capability": "B"
+  },
+  "Q07": {
+    "original": false,
+    "modified_order": [
+      "W2",
+      "R2",
+      "W1",
+      "R1"
+    ]
+  },
+  "Q08": {
+    "order": [
+      "B",
+      "A",
+      "E",
+      "D",
+      "G",
+      "C",
+      "F",
+      "H"
+    ],
+    "objective": 140
+  },
+  "Q09": {
+    "equivalent": false,
+    "minimum_counterexample": [
+      2,
+      2
+    ]
+  },
+  "Q10": {
+    "optimal": [
+      5,
+      5
+    ],
+    "intersection_alone_linearizable": false
+  },
+  "Q11": {
+    "lower": "0/1",
+    "upper": "1/4"
+  },
+  "Q12": {
+    "finite_suite_proves_original": false,
+    "restricted_domain_size": 65793
+  },
+  "Q13": {
+    "all_terminate": true,
+    "normal_forms_ab": [
+      "a",
+      "aa"
+    ]
+  },
+  "Q14": {
+    "safe_sequence": [
+      "P3",
+      "P1",
+      "P2"
+    ],
+    "grant_p1_one_r": false
+  },
+  "Q15": {
+    "codeword_deficit": 1,
+    "minimum_prefix_mean_bits": "256/1"
+  },
+  "Q16": {
+    "admission": [
+      "A",
+      "B",
+      "D",
+      "C"
+    ],
+    "propagated_failure": "A"
+  },
+  "Q17": {
+    "safe_designs": [
+      "C"
+    ],
+    "hardlink_truncation_safe": false
+  },
+  "Q18": {
+    "edges": [
+      [
+        "A",
+        "C"
+      ],
+      [
+        "B",
+        "A"
+      ],
+      [
+        "C",
+        "B"
+      ]
+    ],
+    "serializable": false
+  },
+  "Q19": {
+    "action": "B",
+    "cross_store_atomic_visibility": false
+  },
+  "Q20": {
+    "shared_task_cancelled": false,
+    "stale_callback_deletes_new": false
+  },
+  "Q21": {
+    "accepted": [
+      true,
+      false,
+      true,
+      false
+    ],
+    "unicode_record_bytes": 4
+  },
+  "Q22": {
+    "to_4": 7,
+    "to_4_after_edge": "-inf"
+  },
+  "Q23": {
+    "stdout": [
+      "1",
+      "inner-finally",
+      "caught",
+      "9",
+      "outer-finally"
+    ],
+    "inner_second_yield_reached": false
+  },
+  "Q24": {
+    "visible": [
+      [
+        "b",
+        "right"
+      ]
+    ],
+    "filter_deleted_first_resurrects": [
+      "a"
+    ]
+  },
+  "Q25": {
+    "both_can_commit_off": true,
+    "sufficient_remedies": [
+      "A",
+      "C"
+    ]
+  },
+  "Q26": {
+    "outcomes": [
+      -4,
+      512,
+      3,
+      "ERROR",
+      "ERROR",
+      "ERROR",
+      "ERROR"
+    ],
+    "power_associativity": "right"
+  },
+  "Q27": {
+    "signals": [
+      [
+        1000,
+        "TERM",
+        "process_group"
+      ],
+      [
+        1200,
+        "KILL",
+        "process_group"
+      ]
+    ],
+    "return_at_parent_exit": false
+  },
+  "Q28": {
+    "results": [
+      "x",
+      "Closed",
+      "Closed"
+    ],
+    "blocked_producer_wakes": true
+  },
+  "Q29": {
+    "accepted": [
+      "A",
+      "D"
+    ],
+    "array_every_detects_holes": false
+  },
+  "Q30": {
+    "classifications": [
+      "UB",
+      "defined",
+      "UB",
+      "UB"
+    ],
+    "symmetric_d_result": "INT_MAX"
+  },
+  "Q31": {
+    "unrebuilt_physical_bound": "Theta(n)",
+    "repair": "B"
+  },
+  "Q32": {
+    "result": 3192,
+    "mod_one": 0
+  },
+  "Q33": {
+    "is_one_minimal": true,
+    "global_minimum": [
+      "c"
+    ]
+  },
+  "Q34": {
+    "accepted": [
+      "A",
+      "E"
+    ],
+    "runtime_product": "OVERFLOW"
+  },
+  "Q35": {
+    "root_scale_exponents": [
+      -16,
+      16
+    ],
+    "zero_case_roots": [
+      0,
+      0
+    ]
+  },
+  "Q36": {
+    "residue": 343,
+    "exponent_mod_400": 343
+  },
+  "Q37": {
+    "coefficient": "1/6",
+    "series_coefficients": [
+      "2/1",
+      "-1/6"
+    ]
+  },
+  "Q38": {
+    "coefficients": [
+      "1/1",
+      "0/1",
+      "-1/1",
+      "0/1",
+      "1/8"
+    ],
+    "sup_norm": "1/8"
+  },
+  "Q39": {
+    "solution": [
+      649,
+      180
+    ],
+    "period": [
+      1,
+      1,
+      1,
+      1,
+      6
+    ]
+  },
+  "Q40": {
+    "rank_probabilities": [
+      "615195/2097152",
+      "38757285/67108864"
+    ],
+    "expected_nonzero_kernel": "63/64"
+  },
+  "Q41": {
+    "hth_wins": "1/3",
+    "expected_tosses": "6/1"
+  },
+  "Q42": {
+    "coefficients": [
+      1,
+      2,
+      2,
+      2,
+      2
+    ],
+    "at_zero": "1/1"
+  },
+  "Q43": {
+    "limits": [
+      "0/1",
+      "1/1",
+      "0/1"
+    ],
+    "integrable_dominator_exists": false
+  },
+  "Q44": {
+    "power_10": [
+      [
+        1,
+        10,
+        45,
+        120
+      ],
+      [
+        0,
+        1,
+        10,
+        45
+      ],
+      [
+        0,
+        0,
+        1,
+        10
+      ],
+      [
+        0,
+        0,
+        0,
+        1
+      ]
+    ],
+    "norm_limit": "1/6"
+  },
+  "Q45": {
+    "extrema_coefficients": [
+      [
+        "6/1",
+        "-2/9"
+      ],
+      [
+        "6/1",
+        "2/9"
+      ]
+    ],
+    "ordered_equality_counts": [
+      3,
+      3
+    ]
+  },
+  "Q46": {
+    "labeled": 4290,
+    "necklaces": 217
+  },
+  "Q47": {
+    "roots": [
+      1,
+      2047,
+      2049,
+      4095
+    ],
+    "count": 4
+  },
+  "Q48": {
+    "coefficients": [
+      1,
+      0,
+      -40,
+      0,
+      352,
+      0,
+      -960,
+      0,
+      576
+    ],
+    "degree": 8
+  },
+  "Q49": {
+    "expected_abs_determinant": "13/54",
+    "integrals": [
+      "3/4",
+      "17/27"
+    ]
+  },
+  "Q50": {
+    "sharp_constant": "2/1",
+    "equality_set": "A"
+  }
+}

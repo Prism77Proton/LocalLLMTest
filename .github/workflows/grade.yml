@@ -1,0 +1,51 @@
+name: Grade pasted answers
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: model-test-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  grade:
+    if: startsWith(github.event.issue.title, '[Model test]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Verify grading engine
+        run: python -m unittest discover -s tests -v
+      - name: Grade event snapshot
+        id: grade
+        continue-on-error: true
+        run: python grade.py --event "$GITHUB_EVENT_PATH" --out report
+      - name: Save downloadable report
+        if: always() && steps.grade.outcome != 'skipped'
+        id: artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: model-test-${{ github.event.issue.number }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: report/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Link report in issue
+        if: always() && steps.artifact.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPORT_ARTIFACT_URL: ${{ steps.artifact.outputs.artifact-url }}
+        run: python publish_comment.py
+      - name: Fail visibly on invalid format
+        if: steps.grade.outcome == 'failure'
+        run: exit 1

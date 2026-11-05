@@ -1,0 +1,1523 @@
+{
+  "suite": "Deterministic Model Test 50",
+  "version": "2.0.0",
+  "suite_sha256": "d7ebcdc7b13e635faec8bc6f1f3e2aa8274dfdf0e78cd4c2dd39274b5cf85805",
+  "submission_sha256": "90b88ea5d2224c16375c89a669b8383377d1cdde3dc56119ad286e336efceee8",
+  "model": "DEMO ONLY — deliberately mixed partial answers",
+  "status": "valid",
+  "points": 22,
+  "maximum": 100,
+  "answered": 13,
+  "questions": [
+    {
+      "id": "Q01",
+      "title": "Truth assignments",
+      "category": "Reasoning",
+      "points": 2,
+      "status": "pass",
+      "checks": [
+        {
+          "field": "assignments",
+          "passed": true,
+          "expected": [
+            [
+              true,
+              true,
+              true,
+              false
+            ]
+          ],
+          "received": [
+            [
+              true,
+              true,
+              true,
+              false
+            ]
+          ],
+          "missing": false
+        },
+        {
+          "field": "count",
+          "passed": true,
+          "expected": 1,
+          "received": 1,
+          "missing": false
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q02",
+      "title": "Shared diagnostic batch",
+      "category": "Reasoning",
+      "points": 1,
+      "status": "partial",
+      "checks": [
+        {
+          "field": "posterior",
+          "passed": false,
+          "expected": "91225/1084789",
+          "received": "1/2",
+          "missing": false
+        },
+        {
+          "field": "healthy_double_positive",
+          "passed": true,
+          "expected": "2509/25000",
+          "received": "2509/25000",
+          "missing": false
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q03",
+      "title": "Causal bounds",
+      "category": "Reasoning",
+      "points": 0,
+      "status": "fail",
+      "checks": [
+        {
+          "field": "lower",
+          "passed": false,
+          "expected": "0/1",
+          "received": "-1/1",
+          "missing": false
+        },
+        {
+          "field": "upper",
+          "passed": false,
+          "expected": "1/1",
+          "received": "2/1",
+          "missing": false
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q04",
+      "title": "Unsatisfiable core certificate",
+      "category": "Reasoning",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "core",
+          "passed": false,
+          "expected": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "removal_witnesses",
+          "passed": false,
+          "expected": [
+            [
+              0,
+              0,
+              2
+            ],
+            [
+              0,
+              1,
+              1
+            ],
+            [
+              0,
+              2,
+              0
+            ],
+            [
+              0,
+              1,
+              2
+            ]
+          ],
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q05",
+      "title": "Robust sensors",
+      "category": "Reasoning",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "feasible",
+          "passed": false,
+          "expected": [
+            6,
+            7,
+            8
+          ],
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "minimax",
+          "passed": false,
+          "expected": [
+            7,
+            1
+          ],
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q06",
+      "title": "Exactly once",
+      "category": "Reasoning",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "possible_now",
+          "passed": false,
+          "expected": false,
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "sufficient_capability",
+          "passed": false,
+          "expected": "B",
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q07",
+      "title": "Linearizable history",
+      "category": "Reasoning",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "original",
+          "passed": false,
+          "expected": false,
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "modified_order",
+          "passed": false,
+          "expected": [
+            "W2",
+            "R2",
+            "W1",
+            "R1"
+          ],
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q08",
+      "title": "Optimal WorkGraph",
+      "category": "Reasoning",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "order",
+          "passed": false,
+          "expected": [
+            "B",
+            "A",
+            "E",
+            "D",
+            "G",
+            "C",
+            "F",
+            "H"
+          ],
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "objective",
+          "passed": false,
+          "expected": 140,
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q09",
+      "title": "Quantifiers",
+      "category": "Reasoning",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "equivalent",
+          "passed": false,
+          "expected": false,
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "minimum_counterexample",
+          "passed": false,
+          "expected": [
+            2,
+            2
+          ],
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q10",
+      "title": "Quorums",
+      "category": "Reasoning",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "optimal",
+          "passed": false,
+          "expected": [
+            5,
+            5
+          ],
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "intersection_alone_linearizable",
+          "passed": false,
+          "expected": false,
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q11",
+      "title": "Pairwise independence",
+      "category": "Reasoning",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "lower",
+          "passed": false,
+          "expected": "0/1",
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "upper",
+          "passed": false,
+          "expected": "1/4",
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q12",
+      "title": "Testing limits",
+      "category": "Reasoning",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "finite_suite_proves_original",
+          "passed": false,
+          "expected": false,
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "restricted_domain_size",
+          "passed": false,
+          "expected": 65793,
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q13",
+      "title": "Rewriting",
+      "category": "Reasoning",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "all_terminate",
+          "passed": false,
+          "expected": true,
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "normal_forms_ab",
+          "passed": false,
+          "expected": [
+            "a",
+            "aa"
+          ],
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q14",
+      "title": "Banker",
+      "category": "Reasoning",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "safe_sequence",
+          "passed": false,
+          "expected": [
+            "P3",
+            "P1",
+            "P2"
+          ],
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "grant_p1_one_r",
+          "passed": false,
+          "expected": false,
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q15",
+      "title": "Micro encoding",
+      "category": "Reasoning",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "codeword_deficit",
+          "passed": false,
+          "expected": 1,
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "minimum_prefix_mean_bits",
+          "passed": false,
+          "expected": "256/1",
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q16",
+      "title": "DAG admission trace",
+      "category": "Code and systems",
+      "points": 2,
+      "status": "pass",
+      "checks": [
+        {
+          "field": "admission",
+          "passed": true,
+          "expected": [
+            "A",
+            "B",
+            "D",
+            "C"
+          ],
+          "received": [
+            "A",
+            "B",
+            "D",
+            "C"
+          ],
+          "missing": false
+        },
+        {
+          "field": "propagated_failure",
+          "passed": true,
+          "expected": "A",
+          "received": "A",
+          "missing": false
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q17",
+      "title": "Filesystem containment",
+      "category": "Code and systems",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "safe_designs",
+          "passed": false,
+          "expected": [
+            "C"
+          ],
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "hardlink_truncation_safe",
+          "passed": false,
+          "expected": false,
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q18",
+      "title": "Snapshot cycle",
+      "category": "Code and systems",
+      "points": 2,
+      "status": "pass",
+      "checks": [
+        {
+          "field": "edges",
+          "passed": true,
+          "expected": [
+            [
+              "A",
+              "C"
+            ],
+            [
+              "B",
+              "A"
+            ],
+            [
+              "C",
+              "B"
+            ]
+          ],
+          "received": [
+            [
+              "A",
+              "C"
+            ],
+            [
+              "B",
+              "A"
+            ],
+            [
+              "C",
+              "B"
+            ]
+          ],
+          "missing": false
+        },
+        {
+          "field": "serializable",
+          "passed": true,
+          "expected": false,
+          "received": false,
+          "missing": false
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q19",
+      "title": "Commit recovery",
+      "category": "Code and systems",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "action",
+          "passed": false,
+          "expected": "B",
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "cross_store_atomic_visibility",
+          "passed": false,
+          "expected": false,
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q20",
+      "title": "SingleFlight",
+      "category": "Code and systems",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "shared_task_cancelled",
+          "passed": false,
+          "expected": false,
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "stale_callback_deletes_new",
+          "passed": false,
+          "expected": false,
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q21",
+      "title": "JSON Lines bytes",
+      "category": "Code and systems",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "accepted",
+          "passed": false,
+          "expected": [
+            true,
+            false,
+            true,
+            false
+          ],
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "unicode_record_bytes",
+          "passed": false,
+          "expected": 4,
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q22",
+      "title": "Relevant negative cycles",
+      "category": "Code and systems",
+      "points": 2,
+      "status": "pass",
+      "checks": [
+        {
+          "field": "to_4",
+          "passed": true,
+          "expected": 7,
+          "received": 7,
+          "missing": false
+        },
+        {
+          "field": "to_4_after_edge",
+          "passed": true,
+          "expected": "-inf",
+          "received": "-inf",
+          "missing": false
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q23",
+      "title": "Generator trace",
+      "category": "Code and systems",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "stdout",
+          "passed": false,
+          "expected": [
+            "1",
+            "inner-finally",
+            "caught",
+            "9",
+            "outer-finally"
+          ],
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "inner_second_yield_reached",
+          "passed": false,
+          "expected": false,
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q24",
+      "title": "Tombstone ranking",
+      "category": "Code and systems",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "visible",
+          "passed": false,
+          "expected": [
+            [
+              "b",
+              "right"
+            ]
+          ],
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "filter_deleted_first_resurrects",
+          "passed": false,
+          "expected": [
+            "a"
+          ],
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q25",
+      "title": "Write skew",
+      "category": "Code and systems",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "both_can_commit_off",
+          "passed": false,
+          "expected": true,
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "sufficient_remedies",
+          "passed": false,
+          "expected": [
+            "A",
+            "C"
+          ],
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q26",
+      "title": "Expression evaluator",
+      "category": "Code and systems",
+      "points": 2,
+      "status": "pass",
+      "checks": [
+        {
+          "field": "outcomes",
+          "passed": true,
+          "expected": [
+            -4,
+            512,
+            3,
+            "ERROR",
+            "ERROR",
+            "ERROR",
+            "ERROR"
+          ],
+          "received": [
+            -4,
+            512,
+            3,
+            "ERROR",
+            "ERROR",
+            "ERROR",
+            "ERROR"
+          ],
+          "missing": false
+        },
+        {
+          "field": "power_associativity",
+          "passed": true,
+          "expected": "right",
+          "received": "right",
+          "missing": false
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q27",
+      "title": "Process timeout",
+      "category": "Code and systems",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "signals",
+          "passed": false,
+          "expected": [
+            [
+              1000,
+              "TERM",
+              "process_group"
+            ],
+            [
+              1200,
+              "KILL",
+              "process_group"
+            ]
+          ],
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "return_at_parent_exit",
+          "passed": false,
+          "expected": false,
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q28",
+      "title": "Closable queue",
+      "category": "Code and systems",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "results",
+          "passed": false,
+          "expected": [
+            "x",
+            "Closed",
+            "Closed"
+          ],
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "blocked_producer_wakes",
+          "passed": false,
+          "expected": true,
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q29",
+      "title": "Runtime validation",
+      "category": "Code and systems",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "accepted",
+          "passed": false,
+          "expected": [
+            "A",
+            "D"
+          ],
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "array_every_detects_holes",
+          "passed": false,
+          "expected": false,
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q30",
+      "title": "C17 semantics",
+      "category": "Code and systems",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "classifications",
+          "passed": false,
+          "expected": [
+            "UB",
+            "defined",
+            "UB",
+            "UB"
+          ],
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "symmetric_d_result",
+          "passed": false,
+          "expected": "INT_MAX",
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q31",
+      "title": "Lazy median storage",
+      "category": "Code and systems",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "unrebuilt_physical_bound",
+          "passed": false,
+          "expected": "Theta(n)",
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "repair",
+          "passed": false,
+          "expected": "B",
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q32",
+      "title": "Overflow-free mulmod",
+      "category": "Code and systems",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "result",
+          "passed": false,
+          "expected": 3192,
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "mod_one",
+          "passed": false,
+          "expected": 0,
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q33",
+      "title": "Delta debugging",
+      "category": "Code and systems",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "is_one_minimal",
+          "passed": false,
+          "expected": true,
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "global_minimum",
+          "passed": false,
+          "expected": [
+            "c"
+          ],
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q34",
+      "title": "Micro contract parser",
+      "category": "Code and systems",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "accepted",
+          "passed": false,
+          "expected": [
+            "A",
+            "E"
+          ],
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "runtime_product",
+          "passed": false,
+          "expected": "OVERFLOW",
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q35",
+      "title": "Stable roots",
+      "category": "Code and systems",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "root_scale_exponents",
+          "passed": false,
+          "expected": [
+            -16,
+            16
+          ],
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "zero_case_roots",
+          "passed": false,
+          "expected": [
+            0,
+            0
+          ],
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q36",
+      "title": "Power tower",
+      "category": "Mathematics",
+      "points": 2,
+      "status": "pass",
+      "checks": [
+        {
+          "field": "residue",
+          "passed": true,
+          "expected": 343,
+          "received": 343,
+          "missing": false
+        },
+        {
+          "field": "exponent_mod_400",
+          "passed": true,
+          "expected": 343,
+          "received": 343,
+          "missing": false
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q37",
+      "title": "Improper integral",
+      "category": "Mathematics",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "coefficient",
+          "passed": false,
+          "expected": "1/6",
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "series_coefficients",
+          "passed": false,
+          "expected": [
+            "2/1",
+            "-1/6"
+          ],
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q38",
+      "title": "Monic minimax quartic",
+      "category": "Mathematics",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "coefficients",
+          "passed": false,
+          "expected": [
+            "1/1",
+            "0/1",
+            "-1/1",
+            "0/1",
+            "1/8"
+          ],
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "sup_norm",
+          "passed": false,
+          "expected": "1/8",
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q39",
+      "title": "Pell certificate",
+      "category": "Mathematics",
+      "points": 2,
+      "status": "pass",
+      "checks": [
+        {
+          "field": "solution",
+          "passed": true,
+          "expected": [
+            649,
+            180
+          ],
+          "received": [
+            649,
+            180
+          ],
+          "missing": false
+        },
+        {
+          "field": "period",
+          "passed": true,
+          "expected": [
+            1,
+            1,
+            1,
+            1,
+            6
+          ],
+          "received": [
+            1,
+            1,
+            1,
+            1,
+            6
+          ],
+          "missing": false
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q40",
+      "title": "Random F2 matrix",
+      "category": "Mathematics",
+      "points": 2,
+      "status": "pass",
+      "checks": [
+        {
+          "field": "rank_probabilities",
+          "passed": true,
+          "expected": [
+            "615195/2097152",
+            "38757285/67108864"
+          ],
+          "received": [
+            "615195/2097152",
+            "38757285/67108864"
+          ],
+          "missing": false
+        },
+        {
+          "field": "expected_nonzero_kernel",
+          "passed": true,
+          "expected": "63/64",
+          "received": "63/64",
+          "missing": false
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q41",
+      "title": "Coin patterns",
+      "category": "Mathematics",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "hth_wins",
+          "passed": false,
+          "expected": "1/3",
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "expected_tosses",
+          "passed": false,
+          "expected": "6/1",
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q42",
+      "title": "Conditional exponential",
+      "category": "Mathematics",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "coefficients",
+          "passed": false,
+          "expected": [
+            1,
+            2,
+            2,
+            2,
+            2
+          ],
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "at_zero",
+          "passed": false,
+          "expected": "1/1",
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q43",
+      "title": "Concentrating mass",
+      "category": "Mathematics",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "limits",
+          "passed": false,
+          "expected": [
+            "0/1",
+            "1/1",
+            "0/1"
+          ],
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "integrable_dominator_exists",
+          "passed": false,
+          "expected": false,
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q44",
+      "title": "Jordan growth",
+      "category": "Mathematics",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "power_10",
+          "passed": false,
+          "expected": [
+            [
+              1,
+              10,
+              45,
+              120
+            ],
+            [
+              0,
+              1,
+              10,
+              45
+            ],
+            [
+              0,
+              0,
+              1,
+              10
+            ],
+            [
+              0,
+              0,
+              0,
+              1
+            ]
+          ],
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "norm_limit",
+          "passed": false,
+          "expected": "1/6",
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q45",
+      "title": "Constrained product",
+      "category": "Mathematics",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "extrema_coefficients",
+          "passed": false,
+          "expected": [
+            [
+              "6/1",
+              "-2/9"
+            ],
+            [
+              "6/1",
+              "2/9"
+            ]
+          ],
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "ordered_equality_counts",
+          "passed": false,
+          "expected": [
+            3,
+            3
+          ],
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q46",
+      "title": "Circular strings",
+      "category": "Mathematics",
+      "points": 2,
+      "status": "pass",
+      "checks": [
+        {
+          "field": "labeled",
+          "passed": true,
+          "expected": 4290,
+          "received": 4290,
+          "missing": false
+        },
+        {
+          "field": "necklaces",
+          "passed": true,
+          "expected": 217,
+          "received": 217,
+          "missing": false
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q47",
+      "title": "Modular roots",
+      "category": "Mathematics",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "roots",
+          "passed": false,
+          "expected": [
+            1,
+            2047,
+            2049,
+            4095
+          ],
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "count",
+          "passed": false,
+          "expected": 4,
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q48",
+      "title": "Minimal polynomial",
+      "category": "Mathematics",
+      "points": 1,
+      "status": "partial",
+      "checks": [
+        {
+          "field": "coefficients",
+          "passed": true,
+          "expected": [
+            1,
+            0,
+            -40,
+            0,
+            352,
+            0,
+            -960,
+            0,
+            576
+          ],
+          "received": [
+            1,
+            0,
+            -40,
+            0,
+            352,
+            0,
+            -960,
+            0,
+            576
+          ],
+          "missing": false
+        },
+        {
+          "field": "degree",
+          "passed": false,
+          "expected": 8,
+          "received": 4,
+          "missing": false
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q49",
+      "title": "Expected determinant",
+      "category": "Mathematics",
+      "points": 0,
+      "status": "missing",
+      "checks": [
+        {
+          "field": "expected_abs_determinant",
+          "passed": false,
+          "expected": "13/54",
+          "received": null,
+          "missing": true
+        },
+        {
+          "field": "integrals",
+          "passed": false,
+          "expected": [
+            "3/4",
+            "17/27"
+          ],
+          "received": null,
+          "missing": true
+        }
+      ],
+      "rationale": ""
+    },
+    {
+      "id": "Q50",
+      "title": "Sharp information inequality",
+      "category": "Mathematics",
+      "points": 2,
+      "status": "pass",
+      "checks": [
+        {
+          "field": "sharp_constant",
+          "passed": true,
+          "expected": "2/1",
+          "received": "2/1",
+          "missing": false
+        },
+        {
+          "field": "equality_set",
+          "passed": true,
+          "expected": "A",
+          "received": "A",
+          "missing": false
+        }
+      ],
+      "rationale": ""
+    }
+  ],
+  "categories": {
+    "Reasoning": {
+      "points": 3,
+      "maximum": 30,
+      "answered": 3
+    },
+    "Code and systems": {
+      "points": 8,
+      "maximum": 40,
+      "answered": 4
+    },
+    "Mathematics": {
+      "points": 11,
+      "maximum": 30,
+      "answered": 6
+    }
+  },
+  "attempted_maximum": 26,
+  "complete": false
+}
