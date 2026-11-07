@@ -24,6 +24,7 @@ import urllib.parse
 import urllib.request
 
 import grade
+import keystore
 import leaderboard
 import submit
 
@@ -485,7 +486,8 @@ def finish(folder, model, settings_note, submit_mode=None):
     """Print the score, add the local leaderboard entry and offer to submit it.
 
     submit_mode: None asks (complete runs, at a terminal only), True submits without
-    asking (complete runs only), False only shows how to share it by hand."""
+    asking (complete runs only), 'dry' rehearses the submission without posting (any
+    run), False only shows how to share it by hand."""
     results=folder/'results.json'
     if not results.exists():return
     result=json.loads(results.read_text())
@@ -497,6 +499,9 @@ def finish(folder, model, settings_note, submit_mode=None):
     print(f'Local leaderboard: {RESULTS/"leaderboard.html"}')
     label=leaderboard.clean_name(f'{model} · {settings_note}')
     complete=result.get('complete') is True
+    if submit_mode=='dry':
+        submit.rehearse(folder,label)
+        return
     if submit_mode is True and not complete:
         print(f'Not submitted: only {result["answered"]}/{len(result["questions"])} answered. '
               'Resume with --resume, then run: llmtest submit')
@@ -525,16 +530,57 @@ def run_label(folder, result):
         return leaderboard.clean_name(result.get('model') or 'Unnamed model')
 
 
-def submit_earlier(folder=None, confirm=True, base=None):
-    """Submit a finished run's answers without running anything (llmtest submit)."""
+def submit_earlier(folder=None, confirm=True, base=None, dry_run=False):
+    """Submit a finished run's answers without running anything (llmtest submit).
+
+    dry_run rehearses the submission instead and accepts incomplete runs."""
     folder=(folder or latest_run(base)).resolve()
     try:result=json.loads((folder/'results.json').read_text())
     except (OSError,ValueError):raise ValueError(f'No finished run in {folder}.') from None
+    if dry_run:
+        if result.get('status')!='valid' or not result.get('answered'):
+            raise ValueError(f'No answers to rehearse in {folder}.')
+        print(f'Run: {folder}')
+        return 0 if submit.rehearse(folder,run_label(folder,result)) else 1
     if result.get('status')!='valid' or result.get('complete') is not True:
         raise ValueError(f'That run has {result.get("answered",0)}/50 answered; resume it '
                          '(llmtest --resume) before submitting.')
     print(f'Run: {folder}')
     return 0 if submit.submit_run(folder,run_label(folder,result),confirm=confirm) else 1
+
+
+def offer_to_remember(server):
+    """After a typed key worked: offer to save it for this server (never for flag/env keys)."""
+    try:
+        reply=input(f'Remember this key for {server.root}? It is saved in {keystore.path()}, readable only by you. [Y/n] ')
+    except EOFError:
+        return False
+    if reply.strip().lower() not in ('','y','yes'):return False
+    keystore.save(server.root,server.key)
+    print('Saved. Forget it any time with: llmtest --forget-key')
+    return True
+
+
+def connect(url, key, backend):
+    """The server and its model list. The key comes from --key-file / the environment, else the
+    one remembered for this server; if the server wants one and none works, ask (hidden) and
+    offer to remember it. A key given by flag or environment that is rejected is an error."""
+    server=Server(url,key,backend)
+    remembered=''
+    if not key:
+        remembered=server.key=keystore.load(server.root)
+    try:
+        models=server.models()
+    except ApiError as error:
+        if error.status not in (401,403) or key or not os.isatty(0):raise
+        if remembered:print('The remembered API key for this server was rejected.',flush=True)
+        server.key=getpass.getpass('Server API key (hidden): ').strip()
+        models=server.models()
+        # A stale remembered key must not linger and be tried first next time.
+        if not offer_to_remember(server) and remembered:keystore.forget([server.root])
+    else:
+        if remembered:print('Using the remembered API key for this server.',flush=True)
+    return server,models
 
 
 def ask_url(saved):
@@ -567,27 +613,31 @@ def main():
     parser.add_argument('--no-submit',action='store_true',help='Do not offer to submit at the end.')
     parser.add_argument('--submit-only',action='store_true',help="Submit an earlier run's answers instead of "
                         'testing: --out FOLDER, default the latest run. Asks first unless --submit is given.')
+    parser.add_argument('--dry-run',action='store_true',help='Rehearse a submission: build and save exactly what '
+                        'would be posted and check the GitHub login, but post nothing. Works on partial runs, '
+                        'after a test or with --submit-only.')
+    parser.add_argument('--forget-key',action='store_true',help='Delete the remembered API key for --url (every '
+                        'remembered key without --url), then exit.')
     args=parser.parse_args()
     if min(args.context,args.max_tokens,args.timeout,args.load_timeout)<=0:parser.error('Sizes and timeouts must be positive.')
     if not math.isfinite(args.temperature) or args.temperature<0:parser.error('Temperature must be finite and nonnegative.')
     if args.submit and args.no_submit:parser.error('--submit and --no-submit contradict each other.')
+    if args.dry_run and (args.submit or args.no_submit):parser.error('--dry-run cannot be combined with --submit or --no-submit.')
     if args.submit_only:
         if args.no_submit:parser.error('--submit-only and --no-submit contradict each other.')
-        return submit_earlier(args.out,confirm=not args.submit)
-    submit_mode=True if args.submit else False if args.no_submit else None
+        return submit_earlier(args.out,confirm=not args.submit,dry_run=args.dry_run)
+    if args.forget_key:
+        count=keystore.forget([Server(u).root for u in args.url] if args.url else None)
+        print(f'Forgot {count} remembered key{"" if count==1 else "s"}.')
+        return 0
+    submit_mode='dry' if args.dry_run else True if args.submit else False if args.no_submit else None
     interactive=sys.stdin.isatty()
     saved=RESULTS/'.last-server'
     urls=args.url or [ask_url(saved)]
     url=urls[choose(urls,'server')] if len(urls)>1 else urls[0]
     if not url:raise ValueError('Enter the server URL, for example http://localhost:1234.')
     key=args.key_file.read_text().strip() if args.key_file else os.environ.get(args.key_env,'').strip()
-    server=Server(url,key,args.backend)
-    try:
-        models=server.models()
-    except ApiError as error:
-        if error.status not in (401,403) or key or not os.isatty(0):raise
-        server.key=getpass.getpass('Server API key (hidden): ').strip()
-        models=server.models()
+    server,models=connect(url,key,args.backend)
     print(f'Server: {server.root} · {server.backend}',flush=True)
     RESULTS.mkdir(exist_ok=True);saved.write_text(server.root+'\n')
     if args.list:

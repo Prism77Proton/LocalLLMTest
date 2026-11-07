@@ -64,23 +64,30 @@ def _explain(error):
     return ' '.join(part for part in (f'GitHub returned HTTP {error.code}.', hint, str(message)) if part)
 
 
-def _post(url, data, *, token=None, form=False, timeout=30):
+def _call(url, data=None, *, token=None, form=False, timeout=30):
+    """POST data (GET when there is none); returns (parsed JSON reply, response headers)."""
     headers = {'Accept': 'application/json' if form else 'application/vnd.github+json',
-               'User-Agent': 'LocalLLMTest', 'X-GitHub-Api-Version': '2022-11-28',
-               'Content-Type': 'application/x-www-form-urlencoded' if form else 'application/json'}
+               'User-Agent': 'LocalLLMTest', 'X-GitHub-Api-Version': '2022-11-28'}
     if token:
         headers['Authorization'] = 'Bearer ' + token
-    body = urllib.parse.urlencode(data).encode() if form else json.dumps(data).encode()
-    request = urllib.request.Request(url, body, headers, method='POST')
+    body = None
+    if data is not None:
+        headers['Content-Type'] = 'application/x-www-form-urlencoded' if form else 'application/json'
+        body = urllib.parse.urlencode(data).encode() if form else json.dumps(data).encode()
+    request = urllib.request.Request(url, body, headers, method='GET' if data is None else 'POST')
     try:
         with _OPENER.open(request, timeout=timeout) as response:
-            return json.loads(response.read(2_000_000) or b'{}')
+            return json.loads(response.read(2_000_000) or b'{}'), response.headers
     except urllib.error.HTTPError as error:
         raise SubmitError(_explain(error)) from None
     except (urllib.error.URLError, OSError) as error:
         raise SubmitError(f'Could not reach GitHub: {getattr(error, "reason", error)}') from None
     except ValueError:
         raise SubmitError('GitHub sent a reply that is not JSON.') from None
+
+
+def _post(url, data, **kwargs):
+    return _call(url, data, **kwargs)[0]
 
 
 def _without_rationale(answers):
@@ -265,3 +272,69 @@ def submit_run(folder, label, *, confirm=True, interactive=None, say=print, ask=
         return None
     say(f'Submitted: {url}\n  GitHub grades it within a minute and comments the score on that issue.')
     return url
+
+
+def check_login(token):
+    """Ask GitHub who a token belongs to (a read-only call). Returns (login, scopes);
+    scopes is None for tokens that do not report any (fine-grained and app tokens)."""
+    data, headers = _call(f'{API}/user', token=token)
+    login = data.get('login')
+    if not isinstance(login, str) or not login:
+        raise SubmitError('GitHub did not say who the token belongs to.')
+    reported = headers.get('X-OAuth-Scopes')
+    scopes = None if reported is None else {s.strip() for s in reported.split(',') if s.strip()}
+    return login, scopes
+
+
+def rehearse(folder, label, *, say=print):
+    """Do everything a submission does except the final POST: build and validate the exact
+    issue, save it to issue-preview.md, and check the GitHub login. Nothing is posted.
+    Returns True if a real submission would post automatically."""
+    folder = folder.resolve()
+    say('Dry run: nothing will be posted.')
+    try:
+        answers = (folder / 'answers.jsonl').read_text(encoding='utf-8')
+        title, body = prepare(label, answers)
+    except (SubmitError, OSError) as error:
+        say(f'  Cannot submit: {error}')
+        return False
+    total = len(grade.load_suite()[0]['questions'])
+    records = answers.strip().splitlines()
+    preview = folder / 'issue-preview.md'
+    preview.write_text(f'Title: {title}\n\n{body}\n', encoding='utf-8')
+    say(f'  Repository:  {OWNER_REPO} (a public issue)')
+    say(f'  Title:       {title}')
+    say(f'  Answers:     {len(records)}/{total}, {len(body):,} characters; first: {records[0][:100]}')
+    say(f'  Full issue:  {preview}  (first line the title, then the body exactly as it would be posted)')
+    problems = []
+    if len(records) != total:
+        problems.append(f'only {len(records)}/{total} answered; a real submission waits for a complete run')
+    found = find_token()
+    if found:
+        token, source = found
+        try:
+            login, scopes = check_login(token)
+        except SubmitError as error:
+            problems.append(f'the login from {source} does not work: {error}')
+        else:
+            if scopes is None:
+                say(f'  Login:       {login} via {source}; this token type does not report its '
+                    'permissions, so the real post could still be refused')
+            elif scopes & {'public_repo', 'repo'}:
+                say(f'  Login:       {login} via {source}; scopes: {", ".join(sorted(scopes))}')
+            else:
+                shown = ', '.join(sorted(scopes)) or 'none'
+                problems.append(f'the login ({login}, via {source}) lacks the public_repo scope (has: {shown})')
+    elif CLIENT_ID:
+        say('  Login:       none found; a real submission would open a one-time-code login in your browser')
+    else:
+        problems.append('no GitHub login found (run "gh auth login" or set GITHUB_TOKEN to a classic token '
+                        'with the public_repo scope); a real submission would fall back to the clipboard '
+                        'and the pre-filled issue form')
+    if problems:
+        say('Dry run finished. A real submission would not post automatically:')
+        for problem in problems:
+            say(f'  - {problem}')
+        return False
+    say('Dry run finished. A real submission would post this automatically.')
+    return True

@@ -23,7 +23,9 @@ ISSUES_PATH = f'/repos/{submit.OWNER_REPO}/issues'
 class FakeGitHub:
     """Stands in for api.github.com and github.com's device-flow endpoints."""
 
-    def __init__(self, issue_status=201, token_replies=()):
+    def __init__(self, issue_status=201, token_replies=(), user_status=200, scopes='public_repo, gist'):
+        self.user_status = user_status
+        self.scopes = scopes  # the X-OAuth-Scopes header of GET /user; None sends no header
         self.issue_status = issue_status
         self.token_replies = list(token_replies)
         self.requests = []   # (path, headers, parsed body)
@@ -45,6 +47,15 @@ class FakeGitHub:
                     self.send_header(name, value)
                 self.end_headers()
                 self.wfile.write(body)
+
+            def do_GET(self):
+                fake.requests.append((self.path, dict(self.headers), None))
+                if self.path == '/user':
+                    if fake.user_status != 200:
+                        return self.reply(fake.user_status, {'message': 'Bad credentials'})
+                    extra = [] if fake.scopes is None else [('X-OAuth-Scopes', fake.scopes)]
+                    return self.reply(200, {'login': 'octocat'}, headers=extra)
+                self.reply(404)
 
             def do_POST(self):
                 raw = self.rfile.read(int(self.headers['Content-Length']))
@@ -322,6 +333,89 @@ class SubmitRunTests(unittest.TestCase):
         self.assertIn(str(self.folder / 'answers.jsonl'), text)
 
 
+class RehearseTests(unittest.TestCase):
+    """--dry-run: everything a submission does except the final POST."""
+
+    def setUp(self):
+        self.base = tempfile.TemporaryDirectory()
+        self.addCleanup(self.base.cleanup)
+        self.folder = make_run(self.base.name)
+        self.said = []
+        env = unittest.mock.patch.dict(os.environ, {'GITHUB_TOKEN': 'secret-token'})
+        env.start()
+        self.addCleanup(env.stop)
+
+    def rehearse(self):
+        return submit.rehearse(self.folder, LABEL, say=self.said.append)
+
+    @property
+    def text(self):
+        return '\n'.join(self.said)
+
+    def test_good_login_reports_success_and_posts_nothing(self):
+        with FakeGitHub() as fake:
+            self.assertTrue(self.rehearse())
+        self.assertEqual(fake.issues, [])
+        self.assertEqual([r[0] for r in fake.requests], ['/user'])  # one read-only call, no POST
+        self.assertEqual(fake.requests[0][1]['Authorization'], 'Bearer secret-token')
+        self.assertIn('octocat', self.text)
+        self.assertIn('would post this automatically', self.text)
+
+    def test_preview_file_is_exactly_the_issue_and_the_token_is_never_written(self):
+        with FakeGitHub():
+            self.rehearse()
+        title, body = submit.prepare(LABEL, (self.folder / 'answers.jsonl').read_text())
+        preview = (self.folder / 'issue-preview.md').read_text()
+        self.assertEqual(preview, f'Title: {title}\n\n{body}\n')
+        self.assertNotIn('secret-token', preview + self.text)
+
+    def test_problems_are_reported_and_make_it_return_false(self):
+        cases = [
+            (dict(scopes='gist'), 'lacks the public_repo scope'),
+            (dict(user_status=401), 'does not work'),
+        ]
+        for kwargs, expected in cases:
+            self.said.clear()
+            with self.subTest(expected=expected), FakeGitHub(**kwargs) as fake:
+                self.assertFalse(self.rehearse())
+                self.assertIn(expected, self.text)
+                self.assertEqual(fake.issues, [])
+
+    def test_tokens_that_report_no_scopes_pass_with_a_warning(self):
+        with FakeGitHub(scopes=None):
+            self.assertTrue(self.rehearse())
+        self.assertIn('does not report its permissions', self.text)
+
+    def test_no_login_explains_how_to_get_one_without_any_request(self):
+        with FakeGitHub() as fake, unittest.mock.patch.object(submit, 'find_token', return_value=None):
+            self.assertFalse(self.rehearse())
+            self.assertEqual(fake.requests, [])
+        self.assertIn('gh auth login', self.text)
+        self.assertIn('clipboard', self.text)
+
+    def test_registered_app_means_no_login_is_fine_and_no_login_is_started(self):
+        with FakeGitHub() as fake, unittest.mock.patch.object(submit, 'find_token', return_value=None), \
+                unittest.mock.patch.object(submit, 'CLIENT_ID', 'client123'):
+            self.assertTrue(self.rehearse())
+            self.assertEqual(fake.requests, [])
+        self.assertIn('one-time-code', self.text)
+
+    def test_partial_runs_can_be_rehearsed_but_are_flagged(self):
+        self.folder = make_run(self.base.name, full_answers(only=3), 'partial_2026-11-06_090000')
+        with FakeGitHub() as fake:
+            self.assertFalse(self.rehearse())
+            self.assertEqual(fake.issues, [])
+        self.assertIn('only 3/50 answered', self.text)
+        self.assertTrue((self.folder / 'issue-preview.md').exists())
+
+    def test_unreadable_answers_are_reported(self):
+        (self.folder / 'answers.jsonl').write_text('  \n')
+        with FakeGitHub() as fake:
+            self.assertFalse(self.rehearse())
+            self.assertEqual(fake.requests, [])
+        self.assertIn('Cannot submit', self.text)
+
+
 class RunnerIntegrationTests(unittest.TestCase):
     def setUp(self):
         self.base = tempfile.TemporaryDirectory()
@@ -386,8 +480,37 @@ class RunnerIntegrationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'No finished run'):
             runner.submit_earlier(Path(self.base.name) / 'missing')
 
+    def test_dry_run_after_a_test_rehearses_even_a_partial_run_and_posts_nothing(self):
+        folder = make_run(self.base.name, full_answers(only=2))
+        with FakeGitHub() as fake:
+            shown = self.finish(folder, 'dry')
+        self.assertEqual(fake.issues, [])
+        self.assertIn('Dry run: nothing will be posted.', shown)
+        self.assertIn('only 2/50 answered', shown)
+        self.assertNotIn('Share it', shown)
+
+    def test_submit_only_dry_run_accepts_partial_runs_and_reports_through_the_exit_code(self):
+        partial = make_run(self.base.name, full_answers(only=2), 'partial_2026-11-06_090000')
+        complete = make_run(self.base.name, name='complete_2026-11-06_100000')
+        with FakeGitHub() as fake, contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(runner.submit_earlier(partial, dry_run=True), 1)
+            self.assertEqual(runner.submit_earlier(complete, dry_run=True), 0)
+            self.assertEqual(fake.issues, [])
+        with self.assertRaisesRegex(ValueError, '2/50 answered'):
+            runner.submit_earlier(partial)  # the real thing still refuses incomplete runs
+
+    def test_dry_run_flag_through_main(self):
+        folder = make_run(self.base.name)
+        argv = ['run_models.py', '--submit-only', '--dry-run', '--out', str(folder)]
+        with FakeGitHub() as fake, unittest.mock.patch.object(sys, 'argv', argv), \
+                contextlib.redirect_stdout(io.StringIO()) as shown:
+            self.assertEqual(runner.main(), 0)
+            self.assertEqual(fake.issues, [])
+        self.assertIn('would post this automatically', shown.getvalue())
+
     def test_conflicting_flags_are_rejected(self):
-        for argv in (['--submit', '--no-submit'], ['--submit-only', '--no-submit']):
+        for argv in (['--submit', '--no-submit'], ['--submit-only', '--no-submit'],
+                     ['--dry-run', '--submit'], ['--dry-run', '--no-submit']):
             with self.subTest(argv=argv), unittest.mock.patch.object(sys, 'argv', ['run_models.py', *argv]), \
                     contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as raised:
                 runner.main()

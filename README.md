@@ -40,13 +40,21 @@ llmtest
 
 `llmtest board` opens the local leaderboard of every model you have tested.
 
+Installer options: `--no-run` installs without starting a test and `--skip-tests` skips the
+grader self-test. `LLMTEST_HOME` (default `~/LocalLLMTest`) and `LLMTEST_BIN` (default
+`~/.local/bin`) change where it installs, and `LLMTEST_REPO` points it at a fork. Running the
+one-line installer again updates an existing install.
+
 ## Run against your model
 
 Start your inference server first; the test does not start one. `llmtest` is a
-shortcut for `python src/run_models.py`, so either works with the options below.
+shortcut for `python src/run_models.py` (plus the `board` and `submit` subcommands; `llmtest submit` is
+`--submit-only`), so either works with the options below.
 
 - **LM Studio:** native model listing and explicit `/api/v1/models/load`.
-- **Unsloth Studio:** `/v1/models` plus explicit `/api/inference/load`.
+- **Unsloth Studio:** `/v1/models` plus explicit `/api/inference/load`. After loading, the runner
+  asks `/v1/models` which model the server now serves and sends chat requests under that name
+  (a short name can load as a hub ID such as `unsloth/<name>`).
 - **Other OpenAI-compatible servers:** `/v1/models` and `/v1/chat/completions`;
   the server must already serve the model, because OpenAI compatibility has no
   standard model-loading API. A standalone llama-server already serves its model.
@@ -64,9 +72,15 @@ python src/run_models.py --url http://localhost:1234 --resume   # continue that 
 ```
 
 For authentication use `--key-file`, the `MODEL_API_KEY` environment variable (or
-`--key-env NAME`), or the hidden prompt after an authentication failure. Keys are
-not stored in the run folder or sent to GitHub. Redirects are refused and
-environment proxies are bypassed.
+`--key-env NAME`), or the hidden prompt after an authentication failure. After a key
+you typed works, the runner offers to remember it for that server so the next run does
+not ask. It is saved as plain JSON in `~/.config/llmtest/keys.json` (or under
+`$XDG_CONFIG_HOME`), readable only by you, never in the repository or a run folder. A
+remembered key the server rejects is dropped and asked for again, and keys from a flag or
+the environment are never saved. `llmtest --forget-key` deletes the key for `--url` (every
+remembered key without it). `--backend {auto,unsloth,lmstudio,openai}` overrides the
+server-type detection. Keys are not sent to GitHub. Connections to your model server refuse
+redirects and bypass environment proxies.
 
 Defaults: context 32768, maximum output 8192 tokens, temperature 0, load timeout
 1800 seconds, question timeout 10800 seconds. Adjust with `--context`, `--max-tokens`,
@@ -86,6 +100,7 @@ Each run gets its own folder, `results/<model>_<date-time>/`:
 | `report.html` | The report: score, category totals, every check with expected and received values |
 | `summary.md`, `results.json`, `checks.csv`, `chart.svg` | The same results as Markdown, JSON, CSV and a graphic |
 | `answers.jsonl` | The graded answers, ready to paste into a GitHub issue |
+| `issue-preview.md` | Only after `--dry-run`: the exact issue a submission would post |
 | `raw/` | Every request's streamed events, answer and reasoning text, timing, token usage and errors |
 
 The report is rebuilt after every question, so it can be opened during a run. Only
@@ -143,9 +158,18 @@ llmtest --submit        # test, then post without asking (complete runs only)
 llmtest --no-submit     # test, and do not offer to post
 llmtest submit          # post the latest finished run later, e.g. after logging in
 llmtest submit --out results/<run-folder>   # or a specific run
+llmtest submit --dry-run                    # rehearse: build the issue, check the login, post nothing
+llmtest --only Q01,Q02 --dry-run            # a quick test run, then rehearse
 ```
 
 An incomplete run is never posted automatically; resume it with `--resume` first.
+
+**Rehearse first.** `--dry-run` does everything a submission does except the final POST. It
+builds the exact issue, saves it to `issue-preview.md` in the run folder, and checks your
+GitHub login with one read-only request (it reports the account and the token's scopes). It
+also works on partial runs. The exit status is 0 only if a real submission would post
+automatically.
+
 Without a terminal (in scripts) nothing is posted unless `--submit` is given.
 
 Maintainer setup, once: create a label named `leaderboard`, and make sure Actions
@@ -257,7 +281,8 @@ The root holds what you use; the engine lives in `src/`.
 | `LEADERBOARD.md` | The public board |
 | `results/` | Your runs and local leaderboard (created on the first run; git-ignored) |
 | `MANIFEST.sha256` | Checksums of every file: `sha256sum -c MANIFEST.sha256` |
-| `src/` | The runner, grader, leaderboard and tests, plus the answer key and demo data |
+| `src/` | The runner (`run_models.py`), grader (`grade.py`), leaderboard, GitHub submission (`submit.py`),
+key memory (`keystore.py`) and tests, plus the answer key and demo data |
 
 ## Local use
 
