@@ -25,6 +25,7 @@ import urllib.request
 
 import grade
 import leaderboard
+import submit
 
 ROOT = Path(__file__).resolve().parent
 RESULTS = ROOT / 'results'
@@ -470,8 +471,11 @@ def run_folder(model, resume=False, base=RESULTS):
     return base/f'{slug(model)}_{datetime.datetime.now():%Y-%m-%d_%H%M%S}'
 
 
-def finish(folder, model, settings_note):
-    """Print the score, add the local leaderboard entry and show how to share it."""
+def finish(folder, model, settings_note, submit_mode=None):
+    """Print the score, add the local leaderboard entry and offer to submit it.
+
+    submit_mode: None asks (complete runs, at a terminal only), True submits without
+    asking (complete runs only), False only shows how to share it by hand."""
     results=folder/'results.json'
     if not results.exists():return
     result=json.loads(results.read_text())
@@ -482,9 +486,45 @@ def finish(folder, model, settings_note):
     print(f'Report: {folder/"report.html"}')
     print(f'Local leaderboard: {RESULTS/"leaderboard.html"}')
     label=leaderboard.clean_name(f'{model} · {settings_note}')
-    query=urllib.parse.urlencode({'template':'model-test.yml','title':'[Model test] '+label,'model':label})
-    print(f'Share it: open {leaderboard.REPOSITORY}/issues/new?{query}')
+    complete=result.get('complete') is True
+    if submit_mode is True and not complete:
+        print(f'Not submitted: only {result["answered"]}/{len(result["questions"])} answered. '
+              'Resume with --resume, then run: llmtest submit')
+    elif submit_mode is not False and complete and (submit_mode is True or sys.stdin.isatty()):
+        submit.submit_run(folder,label,confirm=submit_mode is None)
+        return
+    print(f'Share it: open {submit.form_url(label)}')
     print(f'  and paste the contents of {folder/"answers.jsonl"} into Answers.')
+
+
+def latest_run(base=None):
+    base=RESULTS if base is None else base
+    runs=list(base.glob('*/results.json'))
+    if not runs:raise ValueError('No finished runs under results/.')
+    return max(runs,key=lambda p:p.stat().st_mtime).parent
+
+
+def run_label(folder, result):
+    """The name finish() builds for a run, rebuilt from its manifest."""
+    try:
+        identity=json.loads((folder/'raw'/'run.json').read_text())['identity']
+        settings=identity['settings']
+        note=f'temp {settings["temperature"]:g} · max {settings["max_tokens"]} tokens'
+        return leaderboard.clean_name(f'{identity["selected_model"]} · {note}')
+    except (OSError,ValueError,KeyError,TypeError):
+        return leaderboard.clean_name(result.get('model') or 'Unnamed model')
+
+
+def submit_earlier(folder=None, confirm=True, base=None):
+    """Submit a finished run's answers without running anything (llmtest submit)."""
+    folder=(folder or latest_run(base)).resolve()
+    try:result=json.loads((folder/'results.json').read_text())
+    except (OSError,ValueError):raise ValueError(f'No finished run in {folder}.') from None
+    if result.get('status')!='valid' or result.get('complete') is not True:
+        raise ValueError(f'That run has {result.get("answered",0)}/50 answered; resume it '
+                         '(llmtest --resume) before submitting.')
+    print(f'Run: {folder}')
+    return 0 if submit.submit_run(folder,run_label(folder,result),confirm=confirm) else 1
 
 
 def ask_url(saved):
@@ -512,9 +552,19 @@ def main():
     parser.add_argument('--load-timeout',type=int,default=1800)
     parser.add_argument('--load-options',type=Path,help='Backend-specific JSON object, sent only at loading.')
     parser.add_argument('--chat-options',type=Path,help='Optional backend-specific generation settings (e.g. thinking).')
+    parser.add_argument('--submit',action='store_true',help='When the run is complete, post it to the public '
+                        'leaderboard without asking (needs a GitHub login; see README).')
+    parser.add_argument('--no-submit',action='store_true',help='Do not offer to submit at the end.')
+    parser.add_argument('--submit-only',action='store_true',help="Submit an earlier run's answers instead of "
+                        'testing: --out FOLDER, default the latest run. Asks first unless --submit is given.')
     args=parser.parse_args()
     if min(args.context,args.max_tokens,args.timeout,args.load_timeout)<=0:parser.error('Sizes and timeouts must be positive.')
     if not math.isfinite(args.temperature) or args.temperature<0:parser.error('Temperature must be finite and nonnegative.')
+    if args.submit and args.no_submit:parser.error('--submit and --no-submit contradict each other.')
+    if args.submit_only:
+        if args.no_submit:parser.error('--submit-only and --no-submit contradict each other.')
+        return submit_earlier(args.out,confirm=not args.submit)
+    submit_mode=True if args.submit else False if args.no_submit else None
     interactive=sys.stdin.isatty()
     saved=RESULTS/'.last-server'
     urls=args.url or [ask_url(saved)]
@@ -549,7 +599,7 @@ def main():
     try:
         execute(args,server,model,loaded)
     finally:
-        finish(args.out.resolve(),model,f'temp {args.temperature:g} · max {args.max_tokens} tokens')
+        finish(args.out.resolve(),model,f'temp {args.temperature:g} · max {args.max_tokens} tokens',submit_mode)
     return 0
 
 

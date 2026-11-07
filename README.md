@@ -34,7 +34,9 @@ llmtest
 1. Enter the server address (the last one is remembered), for example `http://localhost:1234`.
 2. Pick a model from the server's list. A loaded model is marked and pre-selected; press Enter.
 3. The questions are sent one at a time, each in a fresh request, with the score so far after each.
-4. At the end you get the score by category, a report, a leaderboard entry and a link to share it.
+4. At the end you get the score by category, a report and a local leaderboard entry.
+5. A complete run then offers to submit itself: press Enter at
+   `Submit to the public leaderboard? [Y/n]` ([details](#submit-to-the-public-leaderboard)).
 
 `llmtest board` opens the local leaderboard of every model you have tested.
 
@@ -107,13 +109,44 @@ Every run adds a row to the **local** leaderboard (`results/leaderboard.html` an
 `.md`): total score, the three category scores, questions answered, and a link to
 the run's report. Partial runs are listed and marked.
 
-The **public** board is [LEADERBOARD.md](LEADERBOARD.md). To submit, open the link
-the runner prints at the end (it fills in the model name), paste `answers.jsonl` and
-submit the issue. GitHub Actions grades it and comments with the score. A maintainer
-then adds the **`leaderboard`** label, and the *Add to leaderboard* workflow re-grades
-the issue and commits the row. Only people with triage or write access can add
-labels, so nobody else can put entries on the board. The answer key is public, so
-the board is self-reported practice data, not a verified benchmark.
+The **public** board is [LEADERBOARD.md](LEADERBOARD.md). GitHub Actions grades each
+submission and comments with the score. A maintainer then adds the **`leaderboard`**
+label, and the *Add to leaderboard* workflow re-grades the issue and commits the row.
+Only people with triage or write access can add labels, so nobody else can put
+entries on the board. The answer key is public, so the board is self-reported
+practice data, not a verified benchmark.
+
+### Submit to the public leaderboard
+
+When a run has answered all 50 questions, `llmtest` offers to submit it. Press Enter
+and it opens a **public** issue titled `[Model test] <model>` on this repository
+through the GitHub API, with your answers in the issue form's format, and prints the
+issue's link. Nothing is posted without that Enter. Only the model name and your
+answers are posted (including any optional `rationale` text the model wrote), never
+the questions, raw recordings or any server key.
+
+Posting needs a GitHub login, because GitHub has no anonymous issue creation. The
+runner uses the first of these it finds:
+
+1. the `GITHUB_TOKEN` or `GH_TOKEN` environment variable (a classic personal access
+   token with the `public_repo` scope),
+2. the [GitHub CLI](https://cli.github.com/): run `gh auth login` once,
+3. a one-time-code login in your browser, once the project has registered a GitHub
+   app (`CLIENT_ID` in `submit.py`; it is empty until then).
+
+The token is held in memory only and never written to disk. If none is available, or
+GitHub refuses, the runner copies your answers to the clipboard and opens the
+pre-filled issue form instead; press Ctrl+V and submit.
+
+```bash
+llmtest --submit        # test, then post without asking (complete runs only)
+llmtest --no-submit     # test, and do not offer to post
+llmtest submit          # post the latest finished run later, e.g. after logging in
+llmtest submit --out results/<run-folder>   # or a specific run
+```
+
+An incomplete run is never posted automatically; resume it with `--resume` first.
+Without a terminal (in scripts) nothing is posted unless `--submit` is given.
 
 Maintainer setup, once: create a label named `leaderboard`, and make sure Actions
 may push to `main` (no branch protection rule blocking `github-actions[bot]`).

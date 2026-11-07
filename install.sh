@@ -84,9 +84,14 @@ cat > "$BIN_DIR/llmtest" <<EOF
 #   llmtest                       pick a server and model, run all 50 questions
 #   llmtest --url URL --list      list a server's models without running anything
 #   llmtest --resume              continue the last run of the model you pick
+#   llmtest submit                post the latest finished run to the public leaderboard
 #   llmtest board                 open the local leaderboard
 #   llmtest --help                every option
 cd "$DEST"
+if [ "\${1:-}" = submit ]; then
+  shift
+  exec "$PYTHON" "$DEST/run_models.py" --submit-only "\$@"
+fi
 if [ "\${1:-}" = board ]; then
   board="$DEST/results/leaderboard.html"
   [ -f "\$board" ] || { echo "No runs yet. Run llmtest first."; exit 1; }
@@ -111,6 +116,7 @@ cat <<EOF
   List a server:       llmtest --url http://localhost:1234 --list
   Servers with a key:  MODEL_API_KEY=... llmtest   (or enter it when asked)
   Results:             $DEST/results/<model>_<date-time>/report.html
+  Submit a finished run: llmtest submit
   Local leaderboard:   llmtest board
 
 EOF
