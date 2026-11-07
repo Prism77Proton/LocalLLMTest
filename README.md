@@ -2,90 +2,121 @@
 
 **How does your model score?** 50 questions. 100 exact checks. No AI judge.
 
-[**Open the report demo**](https://prism77proton.github.io/Model-Test-v2/) ·
-[**Test your model**](#run-against-your-model) ·
-[**Paste answers**](https://github.com/Prism77Proton/Model-Test-v2/issues/new?template=model-test.yml)
+[**Open the report demo**](https://prism77proton.github.io/LocalLLMTest/) ·
+[**Test your model**](#quick-start) ·
+[**Leaderboard**](LEADERBOARD.md) ·
+[**Paste answers**](https://github.com/Prism77Proton/LocalLLMTest/issues/new?template=model-test.yml)
 
-[![Sample model test report: per-question results and category scores](example-report/chart.svg)](https://prism77proton.github.io/Model-Test-v2/)
+[![Sample model test report: per-question results and category scores](example-report/chart.svg)](https://prism77proton.github.io/LocalLLMTest/)
 
 *Illustrative partial submission, not a measured model score. The full report
 shows every check, the expected value, and what the model returned.*
 
-Paste model answers into a GitHub issue. GitHub Actions generates exact scores,
-an offline HTML report with a 50-question graphic, field-by-field differences,
-CSV, JSON, and a Markdown summary. No AI judge, paid API, or external Python packages.
+Point it at any model server, pick a model, and it asks the 50 questions one at a
+time, grades the answers deterministically and writes a report. Results can go on
+the [**leaderboard**](LEADERBOARD.md) with scores for Reasoning, Mathematics, and
+Code and systems. No AI judge, paid API, or external Python packages.
+
+## Quick start
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Prism77Proton/LocalLLMTest/main/install.sh | bash
+```
+
+The installer checks for Python 3.12+, downloads the test to `~/LocalLLMTest`,
+checks the grader, adds an `llmtest` command and offers to start a test. From a
+copy of this repository, run `./install.sh` instead. Then, any time:
+
+```bash
+llmtest
+```
+
+1. Enter the server address (the last one is remembered), for example `http://localhost:1234`.
+2. Pick a model from the server's list. A loaded model is marked and pre-selected; press Enter.
+3. The questions are sent one at a time, each in a fresh request, with the score so far after each.
+4. At the end you get the score by category, a report, a leaderboard entry and a link to share it.
+
+`llmtest board` opens the local leaderboard of every model you have tested.
 
 ## Run against your model
 
-Start your inference application's HTTP service, then run:
-
-```bash
-python run_models.py
-```
-
-Enter its URL, choose a model from the server's available list, and the runner
-loads that model through the server's API. It then sends **one question per fresh
-request**, sequentially, and saves answers, exposed reasoning, token usage,
-timing, errors and an HTML report after every question. It does not launch a
-server process or use SSH. The server application must already be reachable.
+Start your inference server first; the test does not start one. `llmtest` is a
+shortcut for `python run_models.py`, so either works with the options below.
 
 - **LM Studio:** native model listing and explicit `/api/v1/models/load`.
-- **Unsloth Studio:** available `/v1/models` plus explicit `/api/inference/load`.
+- **Unsloth Studio:** `/v1/models` plus explicit `/api/inference/load`.
 - **Other OpenAI-compatible servers:** `/v1/models` and `/v1/chat/completions`;
-  loading is handled by that server, because OpenAI compatibility has no standard
-  model-loading API. A standalone llama-server must already serve its model.
+  the server must already serve the model, because OpenAI compatibility has no
+  standard model-loading API. A standalone llama-server already serves its model.
 
-Examples (Python 3.12+, standard library only):
+A model the server already has loaded is tested as it is running, without loading
+another copy, and keeps its own context (which must leave room for `--max-tokens`
+plus a question). Choosing a model that is not loaded loads it at `--context`.
+Without a terminal (in scripts), the loaded model is used without asking.
 
 ```bash
-python run_models.py --url http://localhost:1234
-python run_models.py --url http://localhost:1234 --url http://192.168.0.97:8888
-python run_models.py --url http://192.168.0.97:8888 --key-file /path/to/private/api-key --list
-python run_models.py --url http://localhost:1234 --model EXACT_ID --only Q01 --out runs/pilot
-python run_models.py --url http://localhost:1234 --model EXACT_ID --out runs/full
-python run_models.py --url http://localhost:1234 --model EXACT_ID --out runs/full --resume
+python run_models.py                                   # interactive: address, model, run
+python run_models.py --url http://localhost:1234 --list
+python run_models.py --url http://localhost:1234 --model EXACT_ID --only Q01
+python run_models.py --url http://localhost:1234 --resume   # continue that model's last run
 ```
 
-The first two commands offer interactive selection. `--list` is read-only and
-never loads or generates. For authentication use `--key-file`, the `MODEL_API_KEY`
-environment variable (or `--key-env NAME`), or the hidden interactive prompt after
-an authentication failure. Keys are not stored in the run manifest or sent to GitHub.
-Each URL uses its own invocation/key; a chosen server's key is not tried against
-the other URLs. Redirects are refused and environment proxies are bypassed.
+For authentication use `--key-file`, the `MODEL_API_KEY` environment variable (or
+`--key-env NAME`), or the hidden prompt after an authentication failure. Keys are
+not stored in the run folder or sent to GitHub. Redirects are refused and
+environment proxies are bypassed.
 
 Defaults: context 32768, maximum output 8192 tokens, temperature 0, load timeout
 1800 seconds, question timeout 10800 seconds. Adjust with `--context`, `--max-tokens`,
 `--temperature`, `--load-timeout`, `--timeout`. Temperature 0 does not promise
-bit-for-bit reproducible generation; **grading** is deterministic.
+bit-for-bit reproducible generation; **grading** is deterministic. Backend-specific
+settings can be supplied with `--load-options private-load.json` and
+`--chat-options private-chat.json` (JSON objects; chat options may include thinking
+controls). The runner refuses overrides of question isolation, model identity or
+transport settings, and never changes CPU limits or system services.
 
-Backend-specific settings can be supplied with `--load-options private-load.json`
-and `--chat-options private-chat.json`. These are JSON objects; load options may
-include hardware settings supported by your server, and chat options may include
-thinking controls. The runner refuses overrides of question isolation, model
-identity, or transport settings. It does not change CPU limits or system services.
-Loading follows the chosen server's memory/eviction policy and may replace an
-existing resident model. Large models can take many minutes to load.
+### What a run produces
 
-Each run folder contains `Qnn.json`, raw SSE events, answer/reasoning text,
-`performance.json`, `recording-status.json`, a GitHub-ready `answers.jsonl`, and
-`report/report.html`. Only the question prompt is sent; never the answer key.
-Resume requires identical server, model, settings, suite and question hashes.
-Completed questions are not sent again. Failed attempts are archived before retry.
-Two runners cannot use the same output folder simultaneously.
+Each run gets its own folder, `results/<model>_<date-time>/`:
 
-For a completed request with malformed output or a token-limit truncation, the
-recorder exports the known requested question with two null answer fields: exactly
-zero credit. It never guesses or repairs an answer; the raw response, failure
-reason and its hash are preserved. A transport failure stops the run and remains
-missing until resumed. `recording-status.json` distinguishes these cases. Manual
-issue submissions must still obey the JSONL envelope grammar.
+| File | Contents |
+|---|---|
+| `report.html` | The report: score, category totals, every check with expected and received values |
+| `summary.md`, `results.json`, `checks.csv`, `chart.svg` | The same results as Markdown, JSON, CSV and a graphic |
+| `answers.jsonl` | The graded answers, ready to paste into a GitHub issue |
+| `raw/` | Every request's streamed events, answer and reasoning text, timing, token usage and errors |
+
+The report is rebuilt after every question, so it can be opened during a run. Only
+the question prompt is sent, never the answer key. `results/` is ignored by git;
+keep run folders private unless you mean to publish them.
+
+A completed answer with malformed output, or one cut off by the token limit, is
+graded as two null fields: exactly zero credit. The runner never guesses or repairs
+an answer; the raw response is preserved. A transport failure stops the run and
+that question stays missing until `--resume`. Resume requires the same server,
+model, settings and questions; completed questions are not sent again, and failed
+attempts are archived in `raw/attempts/`. Two runners cannot share a run folder.
 
 Ctrl+C saves partial output and stops this client. It does **not** guarantee the
-server cancels inference or unloads the model. Use the server's Stop/Unload control
-when needed. The runner leaves the model resident after a completed test.
+server cancels inference or unloads the model; use the server's Stop/Unload control.
+The runner leaves the model loaded after a test.
 
-Paste `runs/full/answers.jsonl` into the GitHub issue form to share the report.
-Keep full run folders private unless you intend to publish their contents.
+## Leaderboard
+
+Every run adds a row to the **local** leaderboard (`results/leaderboard.html` and
+`.md`): total score, the three category scores, questions answered, and a link to
+the run's report. Partial runs are listed and marked.
+
+The **public** board is [LEADERBOARD.md](LEADERBOARD.md). To submit, open the link
+the runner prints at the end (it fills in the model name), paste `answers.jsonl` and
+submit the issue. GitHub Actions grades it and comments with the score. A maintainer
+then adds the **`leaderboard`** label, and the *Add to leaderboard* workflow re-grades
+the issue and commits the row. Only people with triage or write access can add
+labels, so nobody else can put entries on the board. The answer key is public, so
+the board is self-reported practice data, not a verified benchmark.
+
+Maintainer setup, once: create a label named `leaderboard`, and make sure Actions
+may push to `main` (no branch protection rule blocking `github-actions[bot]`).
 
 ## Report on the repository front page
 
@@ -93,7 +124,7 @@ The README embeds the example graphic and links the full report demo above.
 To make that demo live, set **Settings → Pages → Build and deployment → Source →
 GitHub Actions**, then run **Actions → Publish report demo**. Later changes to the
 demo inputs rebuild it automatically on `main`. The Pages workflow publishes
-only the illustrative demo, never files from `runs/` or issue submissions.
+only the illustrative demo, never files from `results/` or issue submissions.
 See [GitHub Pages setup](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
 
 Native model APIs: [LM Studio listing](https://lmstudio.ai/docs/developer/rest/list),

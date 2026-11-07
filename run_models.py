@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Choose a server/model, load through its API, record one fresh question at a time."""
+"""Pick a model from a server, ask it one fresh question at a time, then grade and report.
+
+Run with no arguments for the interactive flow. Each run gets its own folder under
+results/, named after the model, with report.html and the raw recordings, and an
+entry in the local leaderboard (results/leaderboard.html).
+"""
 import argparse
 import contextlib
 import datetime
@@ -9,7 +14,9 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 import socket
+import sys
 import threading
 import time
 import urllib.error
@@ -17,9 +24,13 @@ import urllib.parse
 import urllib.request
 
 import grade
+import leaderboard
 
 ROOT = Path(__file__).resolve().parent
+RESULTS = ROOT / 'results'
 MAX_RESPONSE = 16 * 1024 * 1024
+# Room left for a question prompt beside --max-tokens in an already-loaded model.
+PROMPT_RESERVE = 2048
 
 
 class ApiError(RuntimeError):
@@ -46,6 +57,18 @@ def atomic_json(path, value):
 
 def stamp():
     return datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+
+def lmstudio_model(m):
+    entry=dict(id=m['key'],label=m.get('display_name') or m['key'],loaded=bool(m.get('loaded_instances')))
+    instances=[i for i in m.get('loaded_instances') or [] if isinstance(i,dict) and isinstance(i.get('id'),str)]
+    if instances:
+        # Requests go to the running instance, which keeps the context it was loaded with.
+        entry['instance']=instances[0]['id']
+        context=(instances[0].get('config') or {}).get('context_length')
+        if isinstance(context,int) and not isinstance(context,bool):
+            entry['context']=context
+    return entry
 
 
 class Server:
@@ -97,8 +120,7 @@ class Server:
                 data = self.json('/api/v1/models')
                 if isinstance(data.get('models'), list):
                     self.backend = 'lmstudio'
-                    return [dict(id=m['key'], label=m.get('display_name') or m['key'],
-                                 loaded=bool(m.get('loaded_instances'))) for m in data['models'] if m.get('type')=='llm']
+                    return [lmstudio_model(m) for m in data['models'] if m.get('type')=='llm']
                 if self.backend=='lmstudio':
                     raise ApiError('Unexpected LM Studio model-list response.')
             except ApiError as error:
@@ -115,7 +137,24 @@ class Server:
             model_id=m.get('id')
             if not isinstance(model_id,str) or m.get('is_embedding') or 'ggml-vocab-' in model_id:
                 continue
-            models.append(dict(id=model_id,label=model_id,loaded=m.get('loaded') is True))
+            # Not chat models: embedding models, and the 2nd+ parts of a split GGUF.
+            if 'embed' in model_id.lower() or re.search(r'-(?!00001)\d{5}-of-\d{5}$',model_id):
+                continue
+            entry=dict(id=model_id,label=model_id,loaded=m.get('loaded') is True)
+            context=m.get('context_length')
+            if entry['loaded'] and isinstance(context,int) and not isinstance(context,bool):
+                entry['context']=context
+            models.append(entry)
+        # Unsloth lists the running model twice: under a short serving name that carries
+        # its context, and as the inventory entry whose display name is that short name.
+        # Show the inventory name once; send requests to the serving name.
+        displays={m.get('id'):m.get('display_name') for m in rows if isinstance(m,dict)}
+        for active in [m for m in models if m['loaded'] and 'context' in m]:
+            twins=[m for m in models if m is not active and m['loaded'] and 'context' not in m
+                   and (displays.get(m['id'])==active['id'] or m['id'].endswith('/'+active['id']))]
+            if len(twins)==1:
+                twins[0].update(instance=active['id'],context=active['context'])
+                models.remove(active)
         return models
 
     def load(self, model, context, options, timeout):
@@ -250,11 +289,14 @@ def one_question(server, model, prompt, qid, folder, settings):
 
 
 def export_run(folder, model):
-    """Keep raw evidence; completed format/truncation failures get two null fields."""
+    """Grade what is recorded so far into folder; raw evidence stays in folder/raw.
+
+    Completed format/truncation failures get two null fields (zero credit)."""
+    raw=folder/'raw'
     suite=json.loads((ROOT/'suite.json').read_text())
     records=[];failures=[];performance=[]
     for q in suite['questions']:
-        p=folder/f'{q["id"]}.json'
+        p=raw/f'{q["id"]}.json'
         if not p.exists():continue
         value=json.loads(p.read_text())
         performance.append({k:value.get(k) for k in ('id','status','elapsed_seconds','first_token_seconds','usage','finish_reason')})
@@ -274,11 +316,12 @@ def export_run(folder, model):
                 ' Raw answer SHA-256: '+hashlib.sha256(value['answer'].encode()).hexdigest())))
     text='\n'.join(records)+('\n' if records else '')
     (folder/'answers.jsonl').write_text(text,encoding='utf-8')
-    atomic_json(folder/'performance.json',performance)
-    atomic_json(folder/'recording-status.json',dict(exported=len(records),excluded=failures,
+    atomic_json(raw/'performance.json',performance)
+    atomic_json(raw/'recording-status.json',dict(exported=len(records),excluded=failures,
         note='Known-question format/truncation failures export null fields (zero credit), never repaired answers. Transport failures are missing; resume them. Raw evidence is preserved.'))
-    grade.write_reports(grade.evaluate(text,model),folder/'report')
-    return failures
+    result=grade.evaluate(text,model)
+    grade.write_reports(result,folder)
+    return result
 
 
 @contextlib.contextmanager
@@ -301,17 +344,41 @@ def run_lock(folder):
             finally:fcntl.flock(handle,fcntl.LOCK_UN)
 
 
-def choose(items, label):
+def choose(items, label, default=None):
+    """Numbered pick; Enter accepts the default index when there is one."""
     if not items:raise ValueError(f'No {label} available.')
     for n,item in enumerate(items,1):
         print(f'{n}. {item}')
+    hint=f' [{default+1}]' if default is not None else ''
     while True:
-        value=input(f'Choose {label} number: ').strip()
+        value=input(f'Choose {label} number{hint}: ').strip()
+        if not value and default is not None:return default
         if value.isdigit() and 1<=int(value)<=len(items):return int(value)-1
         print('Enter a listed number.')
 
 
-def execute(args,server,model):
+def loaded_note(m):
+    if not m['loaded']:return ''
+    return f' [loaded, context {m["context"]}]' if 'context' in m else ' [server reports loaded]'
+
+
+def pick_model(models, interactive=False):
+    """Interactive: list every model, the loaded one pre-selected. Otherwise use the
+    loaded model, asking only when that is ambiguous."""
+    if not models:raise ValueError('No models available.')
+    loaded=[m for m in models if m['loaded']]
+    if interactive:
+        default=models.index(loaded[0]) if len(loaded)==1 else 0 if len(models)==1 else None
+        return models[choose([m['label']+loaded_note(m) for m in models],'model',default)]
+    if len(loaded)==1:return loaded[0]
+    if not loaded and len(models)==1:return models[0]
+    if loaded:print(f'The server has {len(loaded)} models loaded.')
+    candidates=loaded or models
+    return candidates[choose([m['label']+loaded_note(m) for m in candidates],'model')]
+
+
+def execute(args,server,model,loaded=None):
+    """loaded: the server's entry for an already-loaded model, tested as it runs."""
     suite_raw=(ROOT/'suite.json').read_bytes()
     suite=json.loads(suite_raw)
     prompts={q['id']:(ROOT/'questions'/f'{q["id"]}.txt').read_text(encoding='utf-8') for q in suite['questions']}
@@ -325,52 +392,105 @@ def execute(args,server,model):
         suite_sha256=hashlib.sha256(suite_raw).hexdigest(),
         prompt_sha256={qid:hashlib.sha256(text.encode()).hexdigest() for qid,text in prompts.items()},
         settings=settings,load_options=load_options)
-    folder=args.out.resolve();folder.mkdir(parents=True,exist_ok=True)
+    if loaded is not None:
+        if load_options:raise ValueError('Load options only apply when the runner loads the model; pass --model to load it.')
+        context=loaded.get('context')
+        if context is not None and context<args.max_tokens+PROMPT_RESERVE:
+            raise ValueError(f'The loaded model has {context} tokens of context, too small for --max-tokens '
+                             f'{args.max_tokens} plus a question. Reload it with more context, or pass --model to load it at --context.')
+        identity.update(context=context,reused_loaded_model=True)
+    folder=args.out.resolve();raw=folder/'raw';raw.mkdir(parents=True,exist_ok=True)
+    if (folder/'run.json').exists() and not (raw/'run.json').exists():
+        raise ValueError('That folder was recorded by an older version of the runner; choose a new folder.')
     selected=args.only.split(',') if args.only else list(prompts)
     if any(qid not in prompts for qid in selected) or len(selected)!=len(set(selected)):
         raise ValueError('Use unique question IDs such as --only Q01,Q02.')
     # Canonical exam order, even when --only was supplied out of order.
     selected=[qid for qid in prompts if qid in selected]
-    with run_lock(folder):
-        manifest_path=folder/'run.json'
+    with run_lock(raw):
+        manifest_path=raw/'run.json'
         if manifest_path.exists():
             manifest=json.loads(manifest_path.read_text())
             if manifest['identity']!=identity:raise ValueError('Resume configuration changed; choose a new output folder.')
             if not args.resume:raise ValueError('Run already exists. Use --resume or a new output folder.')
         else:
-            if any(folder.glob('Q[0-9][0-9].json')):raise ValueError('Orphaned question records; choose a fresh folder.')
+            if any(raw.glob('Q[0-9][0-9].json')):raise ValueError('Orphaned question records; choose a fresh folder.')
             manifest=dict(identity=identity,started=stamp())
             atomic_json(manifest_path,manifest)
         pending=[]
         for qid in selected:
-            p=folder/f'{qid}.json'
+            p=raw/f'{qid}.json'
             if p.exists():
                 prior=json.loads(p.read_text())
                 if prior.get('status')=='complete':continue
                 # Preserve failed/interrupted evidence before replacing it on resume.
-                archive=folder/'attempts'/f'{qid}-{time.time_ns()}'
+                archive=raw/'attempts'/f'{qid}-{time.time_ns()}'
                 archive.mkdir(parents=True)
-                for old in folder.glob(qid+'.*'):old.replace(archive/old.name)
+                for old in raw.glob(qid+'.*'):old.replace(archive/old.name)
             pending.append(qid)
         if not pending:
             export_run(folder,model);print('All selected questions already recorded; report refreshed.');return
-        print(f'Loading {model} through {server.backend} API …',flush=True)
-        inference_model,load_result=server.load(model,args.context,load_options,args.load_timeout)
-        # Server results may include paths and load settings; stay local under ignored runs/.
-        atomic_json(folder/'load-result.json',load_result)
+        if loaded is not None:
+            inference_model=loaded.get('instance',model)
+            load_result=dict(status='already_loaded',instance_id=inference_model,context_length=loaded.get('context'))
+            context=f' with {loaded["context"]} tokens of context' if 'context' in loaded else ''
+            print(f'Using {model}, already loaded{context}, without reloading …',flush=True)
+        else:
+            print(f'Loading {model} through {server.backend} API …',flush=True)
+            inference_model,load_result=server.load(model,args.context,load_options,args.load_timeout)
+        # Server results may include paths and load settings; stay local under ignored results/.
+        atomic_json(raw/'load-result.json',load_result)
         manifest['inference_model']=inference_model;atomic_json(manifest_path,manifest)
         try:
-            for qid in pending:
-                print(f'{qid}: recording one fresh request …',flush=True)
-                result=one_question(server,inference_model,prompts[qid],qid,folder,settings)
-                export_run(folder,model)
-                print(f'{qid}: {result["status"]}, {result["elapsed_seconds"]:.1f}s',flush=True)
+            for n,qid in enumerate(pending,1):
+                print(f'{qid} ({n}/{len(pending)}): asking …',flush=True)
+                result=one_question(server,inference_model,prompts[qid],qid,raw,settings)
+                graded=export_run(folder,model)
+                # Nothing is gradable until one answer is recorded.
+                points=next((q['points'] for q in graded['questions'] if q['id']==qid),0)
+                total=f'{graded["points"]}/{graded["maximum"]}' if graded['status']=='valid' else 'none yet'
+                print(f'{qid}: {result["status"]}, {points}/2 points, {result["elapsed_seconds"]:.1f}s · '
+                      f'running total {total}',flush=True)
                 if result['status'] in ('error','incomplete','interrupted'):
                     raise ApiError('Stopped after a transport/incomplete-response error. Resume to retry that question.')
         finally:
             export_run(folder,model)
-        print(f'Done. Report: {folder/"report"/"report.html"}')
-        print(f'Paste into GitHub: {folder/"answers.jsonl"}')
+
+
+def slug(model):
+    return re.sub(r'[^A-Za-z0-9._-]+','-',model).strip('-.')[:80] or 'model'
+
+
+def run_folder(model, resume=False, base=RESULTS):
+    """New runs get results/<model>_<date-time>; --resume picks that model's latest run."""
+    if resume:
+        runs=sorted(p for p in base.glob(slug(model)+'_*') if (p/'raw'/'run.json').exists())
+        if not runs:raise ValueError(f'No earlier run of {model} under {base} to resume.')
+        return runs[-1]
+    return base/f'{slug(model)}_{datetime.datetime.now():%Y-%m-%d_%H%M%S}'
+
+
+def finish(folder, model, settings_note):
+    """Print the score, add the local leaderboard entry and show how to share it."""
+    results=folder/'results.json'
+    if not results.exists():return
+    result=json.loads(results.read_text())
+    if result.get('status')!='valid' or not result.get('answered'):return
+    print(f'\nScore: {result["points"]}/{result["maximum"]} · {result["answered"]}/{len(result["questions"])} answered')
+    for name,c in result['categories'].items():print(f'  {name}: {c["points"]}/{c["maximum"]}')
+    leaderboard.record_local(folder,result,RESULTS)
+    print(f'Report: {folder/"report.html"}')
+    print(f'Local leaderboard: {RESULTS/"leaderboard.html"}')
+    label=leaderboard.clean_name(f'{model} · {settings_note}')
+    query=urllib.parse.urlencode({'template':'model-test.yml','title':'[Model test] '+label,'model':label})
+    print(f'Share it: open {leaderboard.REPOSITORY}/issues/new?{query}')
+    print(f'  and paste the contents of {folder/"answers.jsonl"} into Answers.')
+
+
+def ask_url(saved):
+    last=saved.read_text().strip() if saved.exists() else ''
+    hint=f' [{last}]' if last else ' (for example http://localhost:1234)'
+    return input(f'Server URL{hint}: ').strip() or last
 
 
 def main():
@@ -379,11 +499,12 @@ def main():
     parser.add_argument('--backend',choices=['auto','unsloth','lmstudio','openai'],default='auto')
     parser.add_argument('--key-file',type=Path)
     parser.add_argument('--key-env',default='MODEL_API_KEY')
-    parser.add_argument('--model',help='Exact inventory model ID; otherwise choose interactively.')
+    parser.add_argument('--model',help='Exact inventory model ID, loaded at --context. Default: pick from the list '
+                        '(the loaded model is pre-selected); without a terminal, the loaded model.')
     parser.add_argument('--list',action='store_true',help='Discovery only; never load or infer.')
-    parser.add_argument('--out',type=Path,default=ROOT/'runs'/'local')
+    parser.add_argument('--out',type=Path,help='Run folder. Default: results/<model>_<date-time>.')
     parser.add_argument('--only',help='Comma-separated IDs; default all 50, sequentially.')
-    parser.add_argument('--resume',action='store_true')
+    parser.add_argument('--resume',action='store_true',help="Continue --out, or this model's latest run.")
     parser.add_argument('--context',type=int,default=32768)
     parser.add_argument('--max-tokens',type=int,default=8192)
     parser.add_argument('--temperature',type=float,default=0)
@@ -394,8 +515,11 @@ def main():
     args=parser.parse_args()
     if min(args.context,args.max_tokens,args.timeout,args.load_timeout)<=0:parser.error('Sizes and timeouts must be positive.')
     if not math.isfinite(args.temperature) or args.temperature<0:parser.error('Temperature must be finite and nonnegative.')
-    urls=args.url or [input('Server URL (for example http://localhost:1234): ').strip()]
+    interactive=sys.stdin.isatty()
+    saved=RESULTS/'.last-server'
+    urls=args.url or [ask_url(saved)]
     url=urls[choose(urls,'server')] if len(urls)>1 else urls[0]
+    if not url:raise ValueError('Enter the server URL, for example http://localhost:1234.')
     key=args.key_file.read_text().strip() if args.key_file else os.environ.get(args.key_env,'').strip()
     server=Server(url,key,args.backend)
     try:
@@ -405,18 +529,27 @@ def main():
         server.key=getpass.getpass('Server API key (hidden): ').strip()
         models=server.models()
     print(f'Server: {server.root} · {server.backend}',flush=True)
+    RESULTS.mkdir(exist_ok=True);saved.write_text(server.root+'\n')
     if args.list:
-        for m in models:print(m['id']+(' [server reports loaded]' if m['loaded'] else ''))
+        for m in models:print(m['id']+loaded_note(m))
         return 0
+    loaded=None
     if args.model:
         if args.model not in [m['id'] for m in models]:raise ValueError('Model ID not in server inventory; use --list.')
         model=args.model
     else:
-        labels=[m['label']+(' [server reports loaded]' if m['loaded'] else '') for m in models]
-        model=models[choose(labels,'model')]['id']
-    if server.backend=='openai':
+        chosen=pick_model(models,interactive)
+        model=chosen['id']
+        loaded=chosen if chosen['loaded'] else None
+        print(f'Model: {model}{loaded_note(chosen)}',flush=True)
+    if server.backend=='openai' and loaded is None:
         print('This server has no supported management API. It must already serve/auto-load the selected model.',flush=True)
-    execute(args,server,model)
+    args.out=args.out or run_folder(model,args.resume)
+    print(f'Run folder: {args.out}',flush=True)
+    try:
+        execute(args,server,model,loaded)
+    finally:
+        finish(args.out.resolve(),model,f'temp {args.temperature:g} · max {args.max_tokens} tokens')
     return 0
 
 

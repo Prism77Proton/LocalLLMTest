@@ -3,9 +3,9 @@ import argparse
 from pathlib import Path
 
 import grade
+from leaderboard import REPOSITORY
 
 ROOT=Path(__file__).resolve().parent
-REPOSITORY='https://github.com/Prism77Proton/Model-Test-v2'
 
 
 def build(destination):

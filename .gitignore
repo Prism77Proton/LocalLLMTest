@@ -6,3 +6,4 @@ answers.jsonl
 runs/
 _site/
 private-*.json
+results/

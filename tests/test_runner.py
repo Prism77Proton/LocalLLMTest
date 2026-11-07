@@ -7,6 +7,7 @@ from pathlib import Path
 import tempfile
 import threading
 import unittest
+import unittest.mock
 
 import build_pages
 import grade
@@ -14,8 +15,8 @@ import run_models as runner
 
 
 class Fixture:
-    def __init__(self, backend='lmstudio', behavior='normal'):
-        self.backend=backend;self.behavior=behavior;self.calls=[]
+    def __init__(self, backend='lmstudio', behavior='normal', loaded_context=None):
+        self.backend=backend;self.behavior=behavior;self.calls=[];self.loaded_context=loaded_context
 
     def __enter__(self):
         fixture=self
@@ -28,7 +29,8 @@ class Fixture:
             def do_GET(self):
                 fixture.calls.append(('GET',self.path,None))
                 if self.path=='/api/v1/models' and fixture.backend=='lmstudio':
-                    return self.send_json({'models':[{'key':'fixture/model','type':'llm','display_name':'Fixture','loaded_instances':[]},
+                    instances=[] if fixture.loaded_context is None else [{'id':'fixture-running','config':{'context_length':fixture.loaded_context}}]
+                    return self.send_json({'models':[{'key':'fixture/model','type':'llm','display_name':'Fixture','loaded_instances':instances},
                                                      {'key':'embedding','type':'embedding'}]})
                 if self.path=='/v1/models':
                     return self.send_json({'data':[{'id':'fixture/model','owned_by':'unsloth-studio' if fixture.backend=='unsloth' else 'test','loaded':False},
@@ -85,17 +87,112 @@ class RunnerTests(unittest.TestCase):
                 self.assertEqual(body['messages'][0]['content'],(runner.ROOT/'questions'/f'Q{i:02}.txt').read_text())
                 self.assertNotIn('tools',body)
             output=Path(folder)
-            result=json.loads((output/'Q01.json').read_text())
+            result=json.loads((output/'raw'/'Q01.json').read_text())
             self.assertEqual(result['status'],'complete')
             self.assertEqual(result['reasoning'],'Reasoning retained separately.')
             self.assertEqual(result['usage']['completion_tokens'],10)
-            self.assertEqual(json.loads((output/'report/results.json').read_text())['points'],4)
-            self.assertNotIn('not-a-real-key',(output/'run.json').read_text())
+            self.assertEqual(json.loads((output/'results.json').read_text())['points'],4)
+            self.assertNotIn('not-a-real-key',(output/'raw'/'run.json').read_text())
             before=len(fake.calls)
             runner.execute(args(folder,resume=True),server,'fixture/model')
             self.assertEqual(len(fake.calls),before)
             with self.assertRaisesRegex(ValueError,'configuration changed'):
                 runner.execute(args(folder,resume=True,max_tokens=99),server,'fixture/model')
+
+    def test_auto_pick_tests_the_loaded_instance_without_loading(self):
+        with Fixture(loaded_context=65536) as fake,tempfile.TemporaryDirectory(dir=runner.ROOT) as folder,contextlib.redirect_stdout(io.StringIO()):
+            server=runner.Server(fake.url)
+            chosen=runner.pick_model(server.models())
+            self.assertEqual(chosen,{'id':'fixture/model','label':'Fixture','loaded':True,'instance':'fixture-running','context':65536})
+            runner.execute(args(folder,only='Q01'),server,chosen['id'],chosen)
+            posts=[(p,b) for verb,p,b in fake.calls if verb=='POST']
+            self.assertEqual([p for p,_ in posts],['/v1/chat/completions'])
+            self.assertEqual(posts[0][1]['model'],'fixture-running')
+            identity=json.loads((Path(folder)/'raw'/'run.json').read_text())['identity']
+            self.assertEqual((identity['context'],identity['reused_loaded_model']),(65536,True))
+            self.assertEqual(json.loads((Path(folder)/'results.json').read_text())['points'],2)
+
+    def test_loaded_context_too_small_is_refused_before_any_request(self):
+        with Fixture(loaded_context=4096) as fake,tempfile.TemporaryDirectory(dir=runner.ROOT) as folder,contextlib.redirect_stdout(io.StringIO()):
+            server=runner.Server(fake.url)
+            chosen=runner.pick_model(server.models())
+            with self.assertRaisesRegex(ValueError,'4096 tokens of context'):
+                runner.execute(args(folder,only='Q01'),server,chosen['id'],chosen)
+            self.assertFalse(any(verb=='POST' for verb,_,_ in fake.calls))
+
+    def test_pick_model_asks_only_when_ambiguous(self):
+        a=dict(id='a',label='A',loaded=False);d=dict(id='d',label='D',loaded=False)
+        b=dict(id='b',label='B',loaded=True,context=32768);c=dict(id='c',label='C',loaded=True)
+        self.assertIs(runner.pick_model([a,b]),b)  # one loaded: no question
+        self.assertIs(runner.pick_model([a]),a)  # only one listed: no question
+        answers=iter(['2','1']);asked=[]
+        def answer(prompt):asked.append(prompt);return next(answers)
+        with unittest.mock.patch('builtins.input',answer):
+            with contextlib.redirect_stdout(io.StringIO()) as shown:
+                self.assertIs(runner.pick_model([a,b,c]),c)  # several loaded: only those are offered
+            self.assertEqual(shown.getvalue().splitlines(),
+                ['The server has 2 models loaded.','1. B [loaded, context 32768]','2. C [server reports loaded]'])
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertIs(runner.pick_model([a,d]),a)  # none loaded: all are offered
+        self.assertEqual(len(asked),2)
+        with self.assertRaises(ValueError):runner.pick_model([])
+
+    def test_interactive_pick_lists_everything_with_loaded_preselected(self):
+        a=dict(id='a',label='A',loaded=False);b=dict(id='b',label='B',loaded=True,context=65536)
+        with unittest.mock.patch('builtins.input',lambda prompt:''),contextlib.redirect_stdout(io.StringIO()) as shown:
+            self.assertIs(runner.pick_model([a,b],interactive=True),b)  # Enter accepts the loaded model
+        self.assertEqual(shown.getvalue().splitlines(),['1. A','2. B [loaded, context 65536]'])
+        with unittest.mock.patch('builtins.input',lambda prompt:'1'),contextlib.redirect_stdout(io.StringIO()):
+            self.assertIs(runner.pick_model([a,b],interactive=True),a)
+        answers=iter(['','2'])  # no default when nothing is loaded: Enter is refused
+        with unittest.mock.patch('builtins.input',lambda prompt:next(answers)),contextlib.redirect_stdout(io.StringIO()):
+            self.assertIs(runner.pick_model([a,dict(a,id='c',label='C')],interactive=True)['id'],'c')
+
+    def test_run_folders_are_named_after_the_model_and_resume_finds_the_latest(self):
+        with tempfile.TemporaryDirectory() as base:
+            base=Path(base)
+            first=runner.run_folder('Qwen3.8-Flash-Next-GGUF/Q8_0',base=base)
+            self.assertRegex(first.name,r'^Qwen3\.8-Flash-Next-GGUF-Q8_0_\d{4}-\d{2}-\d{2}_\d{6}$')
+            with self.assertRaisesRegex(ValueError,'No earlier run'):runner.run_folder('m',resume=True,base=base)
+            for name in ('m_2026-01-01_000000','m_2026-02-01_000000','m_2026-03-01_000000'):
+                (base/name/'raw').mkdir(parents=True)
+            for name in ('m_2026-01-01_000000','m_2026-02-01_000000'):
+                (base/name/'raw'/'run.json').write_text('{}')
+            self.assertEqual(runner.run_folder('m',resume=True,base=base).name,'m_2026-02-01_000000')
+
+    def test_chat_model_list_drops_embeddings_and_split_parts(self):
+        class Fake(runner.Server):
+            def json(self,path,payload=None,timeout=20):
+                if path=='/api/v1/models':raise runner.ApiError('none',404)
+                return {'data':[{'id':i,'owned_by':'unsloth-studio'} for i in
+                        ('kimi/UD-Q2_K_XL','_loose:nomic-embed-text-v1.5.Q4_K_M','big/Model-00001-of-00003','big/Model-00002-of-00003')]}
+        self.assertEqual([m['id'] for m in Fake('http://host').models()],['kimi/UD-Q2_K_XL','big/Model-00001-of-00003'])
+
+    def test_unsloth_running_model_listed_once_and_served_by_its_short_name(self):
+        class Fake(runner.Server):
+            def json(self,path,payload=None,timeout=20):
+                if path=='/api/v1/models':raise runner.ApiError('none',404)
+                return {'data':[{'id':'Q8_0','owned_by':'unsloth-studio','loaded':True,'context_length':32768},
+                                {'id':'Qwen3.8-Flash-Next-GGUF/Q8_0','owned_by':'unsloth-studio','loaded':True,'display_name':'Q8_0'},
+                                {'id':'kimi-k2.5/UD-Q2_K_XL','owned_by':'unsloth-studio','loaded':False}]}
+        models=Fake('http://host').models()
+        self.assertEqual(models,[{'id':'Qwen3.8-Flash-Next-GGUF/Q8_0','label':'Qwen3.8-Flash-Next-GGUF/Q8_0','loaded':True,
+                                  'instance':'Q8_0','context':32768},
+                                 {'id':'kimi-k2.5/UD-Q2_K_XL','label':'kimi-k2.5/UD-Q2_K_XL','loaded':False}])
+        self.assertIs(runner.pick_model(models),models[0])
+
+    def test_finish_adds_a_local_leaderboard_entry(self):
+        with Fixture() as fake,tempfile.TemporaryDirectory() as base,contextlib.redirect_stdout(io.StringIO()) as shown:
+            base=Path(base);folder=base/'fixture-model_2026-11-05_120000'
+            server=runner.Server(fake.url);server.models()
+            runner.execute(args(folder,only='Q01'),server,'fixture/model')
+            with unittest.mock.patch.object(runner,'RESULTS',base):
+                runner.finish(folder,'fixture/model','temp 0 · max 8192 tokens')
+            board=json.loads((base/'leaderboard.json').read_text())
+            self.assertEqual([(e['id'],e['points'],e['answered']) for e in board],[(folder.name,2,1)])
+            self.assertEqual(board[0]['link'],folder.name+'/report.html')
+            self.assertTrue((folder/'report.html').exists() and (base/'leaderboard.html').exists())
+            self.assertIn('issues/new?template=model-test.yml',shown.getvalue())
 
     def test_unsloth_native_load(self):
         with Fixture('unsloth') as fake:
@@ -129,8 +226,8 @@ class RunnerTests(unittest.TestCase):
             record=json.loads((output/'answers.jsonl').read_text())
             self.assertEqual(record['answer'],{'assignments':None,'count':None})
             self.assertIn('RECORDER ZERO-CREDIT',record['rationale'])
-            self.assertEqual((output/'Q01.answer.txt').read_text(),'Not JSON')
-            result=json.loads((output/'report/results.json').read_text())
+            self.assertEqual((output/'raw'/'Q01.answer.txt').read_text(),'Not JSON')
+            result=json.loads((output/'results.json').read_text())
             self.assertEqual((result['points'],result['answered']),(0,1))
 
     def test_truncation_recorded_zero_credit_and_retry_archived(self):
@@ -138,20 +235,20 @@ class RunnerTests(unittest.TestCase):
             server=runner.Server(fake.url);server.models()
             runner.execute(args(folder,only='Q01'),server,'fixture/model')
             output=Path(folder)
-            self.assertEqual(json.loads((output/'Q01.json').read_text())['status'],'truncated')
-            self.assertEqual(json.loads((output/'report/results.json').read_text())['points'],0)
+            self.assertEqual(json.loads((output/'raw'/'Q01.json').read_text())['status'],'truncated')
+            self.assertEqual(json.loads((output/'results.json').read_text())['points'],0)
             fake.behavior='normal'
             runner.execute(args(folder,only='Q01',resume=True),server,'fixture/model')
-            self.assertEqual(json.loads((output/'report/results.json').read_text())['points'],2)
-            self.assertEqual(len(list((output/'attempts').glob('Q01-*'))),1)
+            self.assertEqual(json.loads((output/'results.json').read_text())['points'],2)
+            self.assertEqual(len(list((output/'raw'/'attempts').glob('Q01-*'))),1)
 
     def test_broken_stream_stops_before_next_question(self):
         with Fixture(behavior='broken') as fake,tempfile.TemporaryDirectory(dir=runner.ROOT) as folder,contextlib.redirect_stdout(io.StringIO()):
             server=runner.Server(fake.url);server.models()
             with self.assertRaises(runner.ApiError):runner.execute(args(folder),server,'fixture/model')
             self.assertEqual(len([1 for v,p,b in fake.calls if p=='/v1/chat/completions']),1)
-            self.assertFalse((Path(folder)/'Q02.json').exists())
-            self.assertEqual(json.loads((Path(folder)/'Q01.json').read_text())['status'],'incomplete')
+            self.assertFalse((Path(folder)/'raw'/'Q02.json').exists())
+            self.assertEqual(json.loads((Path(folder)/'raw'/'Q01.json').read_text())['status'],'incomplete')
 
     def test_sse_multiline_event(self):
         data=io.BytesIO(b': heartbeat\n\ndata: {"a":\ndata: 1}\n\ndata: [DONE]\n\n')
@@ -172,7 +269,7 @@ class RunnerTests(unittest.TestCase):
             page=(Path(folder)/'index.html').read_text()
             self.assertIn('How does your model score?',page)
             self.assertIn('not a measured model result',page)
-            self.assertIn('https://github.com/Prism77Proton/Model-Test-v2/issues/new',page)
+            self.assertIn('https://github.com/Prism77Proton/LocalLLMTest/issues/new',page)
             self.assertNotIn('<script',page)
 
 
