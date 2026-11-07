@@ -147,7 +147,7 @@ Native model APIs: [LM Studio listing](https://lmstudio.ai/docs/developer/rest/l
 No custom secrets or model hosting are required. The workflow uses GitHub's
 automatically supplied token to comment in this repository. Repository/organization
 policies must allow the listed actions and the job's `issues: write` permission.
-The workflow uses standard Ubuntu runners; no connection to your R820 is needed.
+
 It processes issue event snapshots, so each report records the exact submitted text
 hash rather than silently changing an older report when an issue is edited.
 
