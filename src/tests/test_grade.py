@@ -130,7 +130,7 @@ class GradingTests(unittest.TestCase):
         self.assertEqual(suite,self.suite);self.assertEqual(key,self.key)
         self.assertEqual(build_suite.build(),(suite,key))
         for q in suite['questions']:
-            text=(grade.ROOT/'questions'/f'{q["id"]}.txt').read_text()
+            text=(grade.ROOT.parent/'questions'/f'{q["id"]}.txt').read_text()
             self.assertIn(f'## {q["id"]}.',text)
             self.assertNotIn('## Q'+('02' if q['id']=='Q01' else '01')+'.',text)
             self.assertNotIn('answer-key.json',text)

@@ -27,8 +27,9 @@ import grade
 import leaderboard
 import submit
 
-ROOT = Path(__file__).resolve().parent
-RESULTS = ROOT / 'results'
+ROOT = Path(__file__).resolve().parent  # src/: the engine and its data
+REPO = ROOT.parent  # what users see: questions/, results/, README
+RESULTS = REPO / 'results'
 MAX_RESPONSE = 16 * 1024 * 1024
 # Room left for a question prompt beside --max-tokens in an already-loaded model.
 PROMPT_RESERVE = 2048
@@ -173,7 +174,16 @@ class Server:
             response=self.json('/api/inference/load',body,timeout)
             if response.get('status') not in ('loaded','success','ready'):
                 raise ApiError('Unsloth did not confirm the model loaded; check its load status/logs.')
-            # Chat uses the public ID selected from /v1/models, not a private path.
+            # Chat must use the public ID the server now serves, which can differ from the
+            # inventory entry that was selected (a short or local name loads as its hub ID,
+            # and the server then answers 404 to the old name). Read it from /v1/models;
+            # the load response may carry a private path, so it is not used.
+            try:
+                running=[m for m in self.models() if m['loaded']]
+            except ApiError:
+                running=[]
+            if len(running)==1:
+                return running[0].get('instance',running[0]['id']), response
             return model, response
         if options:
             raise ValueError('An OpenAI-compatible endpoint has no standard load-options API.')
@@ -382,7 +392,7 @@ def execute(args,server,model,loaded=None):
     """loaded: the server's entry for an already-loaded model, tested as it runs."""
     suite_raw=(ROOT/'suite.json').read_bytes()
     suite=json.loads(suite_raw)
-    prompts={q['id']:(ROOT/'questions'/f'{q["id"]}.txt').read_text(encoding='utf-8') for q in suite['questions']}
+    prompts={q['id']:(REPO/'questions'/f'{q["id"]}.txt').read_text(encoding='utf-8') for q in suite['questions']}
     chat_options=json.loads(args.chat_options.read_text()) if args.chat_options else {}
     load_options=json.loads(args.load_options.read_text()) if args.load_options else {}
     if not isinstance(chat_options,dict) or not isinstance(load_options,dict):raise ValueError('Options must be JSON objects.')

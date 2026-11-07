@@ -27,10 +27,11 @@ jobs:
           python-version: '3.12'
       - name: Verify grading engine
         run: python -m unittest discover -s tests -v
+        working-directory: src
       - name: Grade event snapshot
         id: grade
         continue-on-error: true
-        run: python grade.py --event "$GITHUB_EVENT_PATH" --out report
+        run: python src/grade.py --event "$GITHUB_EVENT_PATH" --out report
       - name: Save downloadable report
         if: always() && steps.grade.outcome != 'skipped'
         id: artifact
@@ -45,7 +46,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           REPORT_ARTIFACT_URL: ${{ steps.artifact.outputs.artifact-url }}
-        run: python publish_comment.py
+        run: python src/publish_comment.py
       - name: Fail visibly on invalid format
         if: steps.grade.outcome == 'failure'
         run: exit 1

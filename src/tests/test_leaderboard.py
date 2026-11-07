@@ -83,7 +83,7 @@ class LeaderboardTests(unittest.TestCase):
 
     def test_published_board_files_match_the_generator(self):
         entries = leaderboard.load(leaderboard.ROOT / 'leaderboard' / 'leaderboard.json')
-        self.assertEqual((leaderboard.ROOT / 'LEADERBOARD.md').read_text(), leaderboard.render_markdown(entries))
+        self.assertEqual((leaderboard.ROOT.parent / 'LEADERBOARD.md').read_text(), leaderboard.render_markdown(entries))
 
 
 if __name__ == '__main__':

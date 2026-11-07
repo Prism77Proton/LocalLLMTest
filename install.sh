@@ -45,7 +45,7 @@ SCRIPT_DIR=""
 if [ -n "${BASH_SOURCE[0]:-}" ] && [ -f "${BASH_SOURCE[0]}" ]; then
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 fi
-if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/run_models.py" ] && [ -f "$SCRIPT_DIR/grade.py" ]; then
+if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/src/run_models.py" ] && [ -f "$SCRIPT_DIR/src/grade.py" ]; then
   DEST="$SCRIPT_DIR"
   say "Using this copy: $DEST"
 elif [ -d "$DEST/.git" ]; then
@@ -72,7 +72,7 @@ fi
 # 3. Check the grading engine works on this machine (about five seconds).
 if [ "$SELF_TEST" = 1 ]; then
   say "Checking the grader"
-  (cd "$DEST" && PYTHONDONTWRITEBYTECODE=1 "$PYTHON" -m unittest discover -s tests -q 2>&1 | tail -1) ||
+  (cd "$DEST/src" && PYTHONDONTWRITEBYTECODE=1 "$PYTHON" -m unittest discover -s tests -q 2>&1 | tail -1) ||
     fail "The grader self-test failed in $DEST."
 fi
 
@@ -90,7 +90,7 @@ cat > "$BIN_DIR/llmtest" <<EOF
 cd "$DEST"
 if [ "\${1:-}" = submit ]; then
   shift
-  exec "$PYTHON" "$DEST/run_models.py" --submit-only "\$@"
+  exec "$PYTHON" "$DEST/src/run_models.py" --submit-only "\$@"
 fi
 if [ "\${1:-}" = board ]; then
   board="$DEST/results/leaderboard.html"
@@ -101,7 +101,7 @@ if [ "\${1:-}" = board ]; then
   done
   exit 0
 fi
-exec "$PYTHON" "$DEST/run_models.py" "\$@"
+exec "$PYTHON" "$DEST/src/run_models.py" "\$@"
 EOF
 chmod +x "$BIN_DIR/llmtest"
 say "Installed the llmtest command in $BIN_DIR"

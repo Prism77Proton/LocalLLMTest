@@ -3,11 +3,11 @@ on:
   push:
     branches: [main]
     paths:
-      - 'build_pages.py'
-      - 'grade.py'
-      - 'suite.json'
-      - 'answer-key.json'
-      - 'examples/demo-answers.jsonl'
+      - 'src/build_pages.py'
+      - 'src/grade.py'
+      - 'src/suite.json'
+      - 'src/answer-key.json'
+      - 'src/examples/demo-answers.jsonl'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 permissions:
@@ -27,8 +27,9 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m unittest discover -s tests -v
+        working-directory: src
       - uses: actions/configure-pages@v5
-      - run: python build_pages.py --out _site
+      - run: python src/build_pages.py --out _site
       - uses: actions/upload-pages-artifact@v4
         with:
           path: _site

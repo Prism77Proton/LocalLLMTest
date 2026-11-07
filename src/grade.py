@@ -243,7 +243,7 @@ def main():
     group.add_argument('--answers',type=Path)
     group.add_argument('--event',type=Path,help='GitHub issues opened/edited event JSON')
     parser.add_argument('--model',default='Unspecified')
-    parser.add_argument('--out',type=Path,default=ROOT/'report')
+    parser.add_argument('--out',type=Path,default=ROOT.parent/'report')
     args=parser.parse_args()
     text=''; model=args.model
     try:

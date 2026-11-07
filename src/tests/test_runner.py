@@ -84,7 +84,7 @@ class RunnerTests(unittest.TestCase):
             for i,(_,body) in enumerate(posts[1:],1):
                 self.assertEqual(len(body['messages']),1)
                 self.assertEqual(body['model'],'fixture-instance')
-                self.assertEqual(body['messages'][0]['content'],(runner.ROOT/'questions'/f'Q{i:02}.txt').read_text())
+                self.assertEqual(body['messages'][0]['content'],(runner.REPO/'questions'/f'Q{i:02}.txt').read_text())
                 self.assertNotIn('tools',body)
             output=Path(folder)
             result=json.loads((output/'raw'/'Q01.json').read_text())
@@ -201,7 +201,33 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual([m['id'] for m in models],['fixture/model'])
             inference_model,_=server.load('fixture/model',32768,{'n_parallel':1},10)
             self.assertEqual(inference_model,'fixture/model')
-            self.assertEqual(fake.calls[-1],('POST','/api/inference/load',{'model_path':'fixture/model','max_seq_length':32768,'n_parallel':1}))
+            self.assertEqual([c for c in fake.calls if c[0]=='POST'][-1],
+                             ('POST','/api/inference/load',{'model_path':'fixture/model','max_seq_length':32768,'n_parallel':1}))
+            # Then it asks which model the server now serves, to name it correctly in chat.
+            self.assertEqual(fake.calls[-1],('GET','/v1/models',None))
+
+    def test_unsloth_chat_uses_the_id_the_server_now_serves(self):
+        # Real case: the inventory entry "short-name" loads as hub ID "unsloth/short-name",
+        # and chat answers 404 "model not loaded" to the short name.
+        class Fake(runner.Server):
+            def __init__(self,rows):
+                super().__init__('http://127.0.0.1:9',backend='unsloth');self.rows=rows
+            def json(self,path,payload=None,timeout=20):
+                if path=='/api/inference/load':return {'status':'success','model':'/private/dir/model.gguf'}
+                raise AssertionError(path)
+            def models(self):
+                if self.rows is None:raise runner.ApiError('down')
+                return self.rows
+        hub={'id':'unsloth/short-name','label':'unsloth/short-name','loaded':True,'context':32768}
+        idle={'id':'short-name','label':'short-name','loaded':False}
+        twin={'id':'short-name','label':'short-name','loaded':True,'instance':'unsloth/short-name','context':32768}
+        def load(rows):return Fake(rows).load('short-name',32768,{},10)[0]
+        self.assertEqual(load([idle,hub]),'unsloth/short-name')
+        self.assertEqual(load([twin]),'unsloth/short-name')
+        # Never the private path from the load response; unclear or failed lookups keep the selection.
+        self.assertEqual(load([idle]),'short-name')
+        self.assertEqual(load([hub,dict(hub,id='other')]),'short-name')
+        self.assertEqual(load(None),'short-name')
 
     def test_generic_server_no_fake_load_endpoint(self):
         with Fixture('generic') as fake:

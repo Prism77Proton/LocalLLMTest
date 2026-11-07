@@ -145,13 +145,13 @@ if __name__ == "__main__":
     suite,key=build()
     (ROOT/'suite.json').write_text(json.dumps(suite,indent=2)+'\n')
     (ROOT/'answer-key.json').write_text(json.dumps(key,indent=2)+'\n')
-    (ROOT/'MODEL_INSTRUCTIONS.txt').write_text(INSTRUCTIONS)
-    question_dir=ROOT/'questions'
+    (ROOT.parent/'MODEL_INSTRUCTIONS.txt').write_text(INSTRUCTIONS)
+    question_dir=ROOT.parent/'questions'
     question_dir.mkdir(exist_ok=True)
     blocks=[]
     for q in suite['questions']:
         block=f"## {q['id']}. {q['title']}\n\n{q['task']}\n\nAnswer fields:\n"+''.join(f"- `{k}`: {v}\n" for k,v in q['fields'].items())
         blocks.append(block)
         (question_dir/f"{q['id']}.txt").write_text(INSTRUCTIONS+'\n'+block+'\n')
-    (ROOT/'QUESTIONS.md').write_text('# Deterministic Model Test 50 — v2\n\n'+INSTRUCTIONS+'\n\n'+'\n\n'.join(blocks)+'\n')
+    (ROOT.parent/'QUESTIONS.md').write_text('# Deterministic Model Test 50 — v2\n\n'+INSTRUCTIONS+'\n\n'+'\n\n'.join(blocks)+'\n')
     print('Built 50 questions and 100 exact field checks.')

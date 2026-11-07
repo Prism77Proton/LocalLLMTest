@@ -7,7 +7,7 @@
 [**Leaderboard**](LEADERBOARD.md) ·
 [**Paste answers**](https://github.com/Prism77Proton/LocalLLMTest/issues/new?template=model-test.yml)
 
-[![Sample model test report: per-question results and category scores](example-report/chart.svg)](https://prism77proton.github.io/LocalLLMTest/)
+[![Sample model test report: per-question results and category scores](src/example-report/chart.svg)](https://prism77proton.github.io/LocalLLMTest/)
 
 *Illustrative partial submission, not a measured model score. The full report
 shows every check, the expected value, and what the model returned.*
@@ -43,7 +43,7 @@ llmtest
 ## Run against your model
 
 Start your inference server first; the test does not start one. `llmtest` is a
-shortcut for `python run_models.py`, so either works with the options below.
+shortcut for `python src/run_models.py`, so either works with the options below.
 
 - **LM Studio:** native model listing and explicit `/api/v1/models/load`.
 - **Unsloth Studio:** `/v1/models` plus explicit `/api/inference/load`.
@@ -57,10 +57,10 @@ plus a question). Choosing a model that is not loaded loads it at `--context`.
 Without a terminal (in scripts), the loaded model is used without asking.
 
 ```bash
-python run_models.py                                   # interactive: address, model, run
-python run_models.py --url http://localhost:1234 --list
-python run_models.py --url http://localhost:1234 --model EXACT_ID --only Q01
-python run_models.py --url http://localhost:1234 --resume   # continue that model's last run
+python src/run_models.py                               # interactive: address, model, run
+python src/run_models.py --url http://localhost:1234 --list
+python src/run_models.py --url http://localhost:1234 --model EXACT_ID --only Q01
+python src/run_models.py --url http://localhost:1234 --resume   # continue that model's last run
 ```
 
 For authentication use `--key-file`, the `MODEL_API_KEY` environment variable (or
@@ -132,7 +132,7 @@ runner uses the first of these it finds:
    token with the `public_repo` scope),
 2. the [GitHub CLI](https://cli.github.com/): run `gh auth login` once,
 3. a one-time-code login in your browser, once the project has registered a GitHub
-   app (`CLIENT_ID` in `submit.py`; it is empty until then).
+   app (`CLIENT_ID` in `src/submit.py`; it is empty until then).
 
 The token is held in memory only and never written to disk. If none is available, or
 GitHub refuses, the runner copies your answers to the clipboard and opens the
@@ -246,21 +246,35 @@ tests independently enumerate finite fixtures and check exact arithmetic; change
 to questions/keys require a version change and review. Publishing the oracle makes
 this an open practice test, not a contamination-resistant hidden benchmark.
 
+## Repository layout
+
+The root holds what you use; the engine lives in `src/`.
+
+| Path | What it is |
+|---|---|
+| `install.sh` | Installer: downloads the test and adds the `llmtest` command |
+| `QUESTIONS.md`, `MODEL_INSTRUCTIONS.txt`, `questions/` | The 50 questions, for testing a chat-only model by hand |
+| `LEADERBOARD.md` | The public board |
+| `results/` | Your runs and local leaderboard (created on the first run; git-ignored) |
+| `MANIFEST.sha256` | Checksums of every file: `sha256sum -c MANIFEST.sha256` |
+| `src/` | The runner, grader, leaderboard and tests, plus the answer key and demo data |
+
 ## Local use
 
 Python 3.12 or later, standard library only:
 
 ```bash
-python -m unittest discover -s tests -v
-python grade.py --answers answers.jsonl --model "Model and settings" --out report
+(cd src && python -m unittest discover -s tests -v)
+python src/grade.py --answers answers.jsonl --model "Model and settings" --out report
 ```
 
-`examples/demo-answers.jsonl` is a deliberately mixed partial submission. The
-included `example-report/report.html` is its generated preview, not a real model result.
+`src/examples/demo-answers.jsonl` is a deliberately mixed partial submission. The
+included `src/example-report/report.html` is its generated preview, not a real model result.
 Exit 0 means valid submission (even a score of zero); exit 2 means invalid format.
 Use `results.json` to decide score thresholds separately.
 
-`build_suite.py` regenerates the public questions and oracle. It is a maintenance
+`src/build_suite.py` regenerates the public questions and oracle (the root `QUESTIONS.md`,
+`MODEL_INSTRUCTIONS.txt` and `questions/`, and the two JSON files in `src/`). It is a maintenance
 tool, not run against submissions. Keep the two generated JSON files versioned.
 `test.yml` checks the grader on pushes and pull requests with read-only permissions;
 `grade.yml` checks it again before processing issue data. Submitted code and shell

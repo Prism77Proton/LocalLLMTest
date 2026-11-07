@@ -2,7 +2,7 @@
 """Rank graded runs by exact score, with per-category totals. Standard library only.
 
 Local runs are recorded by run_models.py into results/. The public board in
-leaderboard/ is updated by GitHub Actions when a maintainer labels a graded issue.
+src/leaderboard/ is updated by GitHub Actions when a maintainer labels a graded issue.
 """
 import argparse
 import datetime
@@ -177,7 +177,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--event', type=Path, help='GitHub issues "labeled" event JSON to grade and add.')
     parser.add_argument('--board', type=Path, default=ROOT / 'leaderboard' / 'leaderboard.json')
-    parser.add_argument('--markdown', type=Path, default=ROOT / 'LEADERBOARD.md')
+    parser.add_argument('--markdown', type=Path, default=ROOT.parent / 'LEADERBOARD.md')
     args = parser.parse_args(argv)
     entries = load(args.board)
     if args.event:

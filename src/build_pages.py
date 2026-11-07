@@ -29,5 +29,5 @@ def build(destination):
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--out',type=Path,default=ROOT/'_site')
+    p.add_argument('--out',type=Path,default=ROOT.parent/'_site')
     build(p.parse_args().out)
